@@ -1,0 +1,35 @@
+{
+  "name": "flux_pro",
+  "version": "1.0.0",
+  "main": "server/app.js",
+  "scripts": {
+    "start": "node server/app.js",
+    "dev": "concurrently \"npm run server\" \"npm run client\"",
+    "dev:server": "nodemon server/app.js",
+    "dev:client": "cd client && npm run dev",
+    "client": "cd client && npm run dev",
+    "server": "nodemon server/app.js",
+    "build": "cd client && npm run build",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "flux",
+    "ai",
+    "image-generation",
+    "image-editing"
+  ],
+  "author": "youngfly93",
+  "license": "ISC",
+  "description": "Flux AI Image Generation and Editing Web Application",
+  "dependencies": {
+    "axios": "^1.9.0",
+    "cors": "^2.8.5",
+    "dotenv": "^16.5.0",
+    "express": "^5.1.0",
+    "multer": "^2.0.0"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2",
+    "nodemon": "^3.1.10"
+  }
+}
