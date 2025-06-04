@@ -50,14 +50,24 @@ cd ..
 ```
 
 3. **配置环境变量**
-项目根目录已包含 `.env` 文件，API Key 已配置：
+```bash
+# 复制环境变量模板
+cp .env.example .env
+
+# 编辑 .env 文件，填入你的 Flux API Key
+nano .env
+```
+
+在 `.env` 文件中配置：
 ```env
-BFL_API_KEY=efa37172-7bfa-4928-a1a0-5138d301bd84
-BFL_API_BASE_URL=https://api.us1.bfl.ai
+BFL_API_KEY=your_flux_api_key_here
+BFL_API_BASE_URL=https://api.bfl.ai
 PORT=3001
 NODE_ENV=development
 CLIENT_URL=http://localhost:5173
 ```
+
+> 💡 **获取 API Key**: 访问 [Black Forest Labs](https://api.bfl.ai) 注册并获取你的 API Key
 
 4. **启动应用**
 
@@ -162,12 +172,28 @@ flux_pro/
 - Tailwind CSS (样式框架)
 - Axios (API 调用)
 
+## 🔑 环境配置
+
+### API Key 配置
+1. 访问 [Black Forest Labs API](https://api.bfl.ai) 注册账号
+2. 获取你的 Flux API Key
+3. 复制 `.env.example` 为 `.env`
+4. 在 `.env` 文件中填入你的 API Key
+
+### 环境变量说明
+- `BFL_API_KEY`: Flux API 密钥（必需）
+- `BFL_API_BASE_URL`: API 基础URL（默认：https://api.bfl.ai）
+- `PORT`: 后端服务器端口（默认：3001）
+- `NODE_ENV`: 运行环境（development/production）
+- `CLIENT_URL`: 前端URL（默认：http://localhost:5173）
+
 ## 📝 注意事项
 
 1. **API 限制**: Flux API 有使用限制，请合理使用
 2. **图片大小**: 上传图片不能超过 10MB
 3. **生成时间**: 图片生成通常需要 30-60 秒
 4. **网络要求**: 需要稳定的网络连接访问 Flux API
+5. **环境变量**: 请勿将 `.env` 文件提交到版本控制系统
 
 ## 🤝 贡献
 

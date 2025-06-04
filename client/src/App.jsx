@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import ImageGenerator from './components/ImageGenerator';
 import ImageEditor from './components/ImageEditor';
+import ImageInpainting from './components/ImageInpainting';
 import { healthCheck } from './services/api';
 
 function App() {
@@ -64,7 +65,7 @@ function App() {
           <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-white/20 p-2">
             <button
               onClick={() => setActiveTab('generate')}
-              className={`px-8 py-3 rounded-xl font-medium transition-all duration-300 ${
+              className={`px-6 py-3 rounded-xl font-medium transition-all duration-300 ${
                 activeTab === 'generate'
                   ? 'bg-gradient-to-r from-indigo-500 to-purple-600 text-white shadow-lg transform scale-105'
                   : 'text-slate-600 hover:text-slate-800 hover:bg-slate-50'
@@ -74,13 +75,23 @@ function App() {
             </button>
             <button
               onClick={() => setActiveTab('edit')}
-              className={`px-8 py-3 rounded-xl font-medium transition-all duration-300 ${
+              className={`px-6 py-3 rounded-xl font-medium transition-all duration-300 ${
                 activeTab === 'edit'
                   ? 'bg-gradient-to-r from-indigo-500 to-purple-600 text-white shadow-lg transform scale-105'
                   : 'text-slate-600 hover:text-slate-800 hover:bg-slate-50'
               }`}
             >
               图像编辑
+            </button>
+            <button
+              onClick={() => setActiveTab('inpaint')}
+              className={`px-6 py-3 rounded-xl font-medium transition-all duration-300 ${
+                activeTab === 'inpaint'
+                  ? 'bg-gradient-to-r from-indigo-500 to-purple-600 text-white shadow-lg transform scale-105'
+                  : 'text-slate-600 hover:text-slate-800 hover:bg-slate-50'
+              }`}
+            >
+              局部重绘
             </button>
           </div>
         </div>
@@ -107,6 +118,7 @@ function App() {
 
           {activeTab === 'generate' && <ImageGenerator />}
           {activeTab === 'edit' && <ImageEditor />}
+          {activeTab === 'inpaint' && <ImageInpainting />}
         </div>
       </main>
 

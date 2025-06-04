@@ -26,6 +26,10 @@ class FluxService {
   async generateImage(prompt, options = {}) {
     try {
       this.checkApiKey();
+
+      // 选择模型，默认使用 flux-kontext-max
+      const model = options.model || 'flux-kontext-max';
+
       const requestData = {
         prompt,
         aspect_ratio: options.aspect_ratio || "1:1",
@@ -44,10 +48,11 @@ class FluxService {
       }
 
       console.log('🎨 Generating image with prompt:', prompt);
+      console.log('🤖 Using model:', model);
       console.log('📋 Request data:', requestData);
 
       const response = await axios.post(
-        `${this.baseURL}/v1/flux-kontext-pro`,
+        `${this.baseURL}/v1/${model}`,
         requestData,
         { headers: this.getHeaders() }
       );
@@ -67,6 +72,10 @@ class FluxService {
   async editImage(prompt, inputImageBase64, options = {}) {
     try {
       this.checkApiKey();
+
+      // 选择模型，默认使用 flux-kontext-max
+      const model = options.model || 'flux-kontext-max';
+
       const requestData = {
         prompt,
         input_image: inputImageBase64,
@@ -74,6 +83,12 @@ class FluxService {
         safety_tolerance: options.safety_tolerance || 2,
         output_format: options.output_format || "jpeg"
       };
+
+      // Add mask for inpainting if provided
+      if (options.mask) {
+        requestData.mask = options.mask;
+        console.log('🎭 Adding mask for inpainting');
+      }
 
       // Add webhook parameters if provided
       if (options.webhook_url) {
@@ -84,10 +99,14 @@ class FluxService {
       }
 
       console.log('✏️ Editing image with prompt:', prompt);
-      console.log('📋 Edit request data:', requestData);
+      console.log('🤖 Using model:', model);
+      console.log('📋 Edit request data:', { ...requestData, input_image: '[BASE64_DATA]', mask: options.mask ? '[MASK_DATA]' : 'none' });
+
+      // 使用选择的模型端点
+      const endpoint = `${this.baseURL}/v1/${model}`;
 
       const response = await axios.post(
-        `${this.baseURL}/v1/flux-kontext-pro`,
+        endpoint,
         requestData,
         { headers: this.getHeaders() }
       );
@@ -128,8 +147,8 @@ class FluxService {
           return result;
         } else if (result.status === 'Failed' || result.status === 'Error') {
           throw new Error(`Request failed with status: ${result.status}`);
-        } else if (result.status === 'Request Moderated') {
-          throw new Error('请求被内容审核系统拦截，请尝试使用更温和的描述');
+        } else if (result.status === 'Request Moderated' || result.status === 'Content Moderated') {
+          throw new Error('内容被审核系统拦截，请使用更温和的描述词汇，避免敏感内容');
         }
 
         // Wait before next attempt

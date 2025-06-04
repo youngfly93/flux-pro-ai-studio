@@ -28,6 +28,11 @@ export const editImage = async (imageFile, prompt, options = {}) => {
     formData.append('prompt', prompt);
     formData.append('options', JSON.stringify(options));
 
+    // Add mask if provided for inpainting
+    if (options.mask) {
+      formData.append('mask', options.mask);
+    }
+
     const response = await api.post('/images/edit', formData, {
       headers: {
         'Content-Type': 'multipart/form-data',

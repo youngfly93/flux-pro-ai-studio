@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { generateImage } from '../services/api';
+import ModelSelector from './ModelSelector';
 
 const ImageGenerator = () => {
   const [prompt, setPrompt] = useState('');
@@ -11,7 +12,8 @@ const ImageGenerator = () => {
     output_format: 'jpeg',
     seed: '',
     prompt_upsampling: false,
-    safety_tolerance: 2
+    safety_tolerance: 2,
+    model: 'flux-kontext-max'  // 默认使用 max 模型
   });
 
   const aspectRatios = [
@@ -102,6 +104,13 @@ const ImageGenerator = () => {
             disabled={loading}
           />
         </div>
+
+        {/* 模型选择 */}
+        <ModelSelector
+          value={options.model}
+          onChange={(model) => setOptions({...options, model})}
+          disabled={loading}
+        />
 
         {/* 选项设置 */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

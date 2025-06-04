@@ -27,13 +27,26 @@ const upload = multer({
     fileSize: 10 * 1024 * 1024 // 10MB limit
   },
   fileFilter: (req, file, cb) => {
+    console.log('📁 File upload check:', {
+      originalname: file.originalname,
+      mimetype: file.mimetype,
+      fieldname: file.fieldname
+    });
+
     const allowedTypes = /jpeg|jpg|png|gif|webp/;
-    const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
-    const mimetype = allowedTypes.test(file.mimetype);
-    
-    if (mimetype && extname) {
+    const allowedMimes = /image\/(jpeg|jpg|png|gif|webp)/;
+
+    // 对于从 canvas 生成的文件，可能没有 originalname
+    const extname = file.originalname ?
+      allowedTypes.test(path.extname(file.originalname).toLowerCase()) : true;
+    const mimetype = allowedMimes.test(file.mimetype);
+
+    console.log('📋 File validation:', { extname, mimetype });
+
+    if (mimetype || file.mimetype === 'image/png' || file.mimetype === 'image/jpeg') {
       return cb(null, true);
     } else {
+      console.error('❌ File type rejected:', file.mimetype);
       cb(new Error('Only image files are allowed'));
     }
   }
@@ -88,44 +101,62 @@ router.post('/generate', async (req, res) => {
 // Edit uploaded image
 router.post('/edit', upload.single('image'), async (req, res) => {
   try {
-    const { prompt, options = {} } = req.body;
-    
+    const { prompt, options = {}, mask } = req.body;
+
     if (!prompt) {
       return res.status(400).json({ error: 'Prompt is required' });
     }
-    
+
     if (!req.file) {
       return res.status(400).json({ error: 'Image file is required' });
     }
 
     console.log('✏️ Starting image editing...');
-    
+
     // Convert uploaded image to base64
     const imageBuffer = fs.readFileSync(req.file.path);
     const imageBase64 = fluxService.imageToBase64(imageBuffer);
-    
+
+    // Parse options if it's a string
+    let parsedOptions = options;
+    if (typeof options === 'string') {
+      try {
+        parsedOptions = JSON.parse(options);
+      } catch (e) {
+        parsedOptions = {};
+      }
+    }
+
+    // If mask is provided, add it to options for inpainting
+    if (mask) {
+      // Convert mask data URL to base64
+      const maskBase64 = mask.replace(/^data:image\/[a-z]+;base64,/, '');
+      parsedOptions.mask = maskBase64;
+      console.log('🎭 Using mask for inpainting');
+    }
+
     // Create edit request
-    const request = await fluxService.editImage(prompt, imageBase64, options);
-    
+    const request = await fluxService.editImage(prompt, imageBase64, parsedOptions);
+
     if (!request.id) {
       return res.status(500).json({ error: 'Failed to create edit request' });
     }
 
     // Poll for result
     const result = await fluxService.pollForResult(request);
-    
+
     if (result.status === 'Ready' && result.result?.sample) {
       // Download the edited image
       const editedImageBuffer = await fluxService.downloadImage(result.result.sample);
-      
+
       // Save to uploads directory
-      const filename = `edited-${Date.now()}.jpg`;
+      const filename = `${mask ? 'inpainted' : 'edited'}-${Date.now()}.jpg`;
       const filepath = path.join(__dirname, '../uploads', filename);
       fs.writeFileSync(filepath, editedImageBuffer);
-      
+
       // Clean up uploaded file
       fs.unlinkSync(req.file.path);
-      
+
       res.json({
         success: true,
         imageUrl: `/uploads/${filename}`,
@@ -135,7 +166,7 @@ router.post('/edit', upload.single('image'), async (req, res) => {
     } else {
       res.status(500).json({ error: 'Image editing failed', status: result.status });
     }
-    
+
   } catch (error) {
     console.error('Edit error:', error);
     // Clean up uploaded file on error

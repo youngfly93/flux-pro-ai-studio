@@ -1,5 +1,6 @@
 import { useState, useRef } from 'react';
 import { editImage } from '../services/api';
+import ModelSelector from './ModelSelector';
 
 const ImageEditor = () => {
   const [selectedFile, setSelectedFile] = useState(null);
@@ -11,18 +12,16 @@ const ImageEditor = () => {
   const [options, setOptions] = useState({
     seed: '',
     safety_tolerance: 2,
-    output_format: 'jpeg'
+    output_format: 'jpeg',
+    model: 'flux-kontext-max'  // 默认使用 max 模型
   });
   const fileInputRef = useRef(null);
 
+  // 图像编辑模式下，安全等级必须 ≤ 2
   const safetyLevels = [
     { value: 0, label: '0 - 最严格' },
     { value: 1, label: '1 - 严格' },
-    { value: 2, label: '2 - 标准 (推荐)' },
-    { value: 3, label: '3 - 宽松' },
-    { value: 4, label: '4 - 更宽松' },
-    { value: 5, label: '5 - 很宽松' },
-    { value: 6, label: '6 - 最宽松' }
+    { value: 2, label: '2 - 标准 (推荐)' }
   ];
 
   const handleFileSelect = (event) => {
@@ -234,6 +233,13 @@ const ImageEditor = () => {
             </div>
           </div>
         </div>
+
+        {/* 模型选择 */}
+        <ModelSelector
+          value={options.model}
+          onChange={(model) => setOptions({...options, model})}
+          disabled={loading}
+        />
 
         {/* 编辑选项 */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
