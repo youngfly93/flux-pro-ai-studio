@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react';
-import { upscaleImage } from '../services/api';
+import { upscaleImage, SERVER_BASE_URL } from '../services/api';
 import BeforeAfterSlider from './BeforeAfterSlider';
 
 const ImageUpscaler = () => {
@@ -108,8 +108,16 @@ const ImageUpscaler = () => {
       
       if (data.success && data.imageUrl) {
         console.log('📊 放大结果数据:', data);
+
+        // Convert relative URL to absolute URL
+        const fullImageUrl = data.imageUrl.startsWith('http')
+          ? data.imageUrl
+          : `${SERVER_BASE_URL}${data.imageUrl}`;
+
+        console.log('🔗 完整图片 URL:', fullImageUrl);
+
         setUpscaledImage({
-          url: data.imageUrl,
+          url: fullImageUrl,
           width: data.width || getExpectedDimensions().width,
           height: data.height || getExpectedDimensions().height,
           size: data.size || 0
@@ -405,6 +413,36 @@ const ImageUpscaler = () => {
                 className="shadow-lg"
                 aspectRatio={`${originalImage.width}/${originalImage.height}`}
               />
+
+              {/* 备用显示 - 如果 Slider 有问题 */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-8">
+                <div className="space-y-2">
+                  <h4 className="font-medium text-gray-700">原图</h4>
+                  <img
+                    src={originalImage.url}
+                    alt="原图"
+                    className="w-full h-auto rounded-lg border border-gray-200"
+                    style={{ maxHeight: '400px', objectFit: 'contain' }}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <h4 className="font-medium text-gray-700">放大后</h4>
+                  <img
+                    src={upscaledImage.url}
+                    alt="放大后"
+                    className="w-full h-auto rounded-lg border border-gray-200"
+                    style={{ maxHeight: '400px', objectFit: 'contain' }}
+                  />
+                </div>
+              </div>
+
+              {/* 调试信息 */}
+              <div className="bg-gray-100 p-4 rounded-lg text-xs text-gray-600">
+                <div><strong>调试信息:</strong></div>
+                <div>Before URL: {originalImage.url}</div>
+                <div>After URL: {upscaledImage.url}</div>
+                <div>Aspect Ratio: {originalImage.width}/{originalImage.height}</div>
+              </div>
 
               {/* 详细信息 */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">

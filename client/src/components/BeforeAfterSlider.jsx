@@ -13,14 +13,18 @@ const BeforeAfterSlider = ({
   const [isDragging, setIsDragging] = useState(false);
   const [imagesLoaded, setImagesLoaded] = useState(false);
   const [loadedCount, setLoadedCount] = useState(0);
+  const [hasError, setHasError] = useState(false);
   const containerRef = useRef(null);
   const sliderRef = useRef(null);
 
   // 图片加载完成处理
-  const handleImageLoad = () => {
+  const handleImageLoad = (imageType) => {
+    console.log(`🖼️ ${imageType} 图片加载完成`);
     setLoadedCount(prev => {
       const newCount = prev + 1;
+      console.log(`📊 已加载图片数量: ${newCount}/2`);
       if (newCount >= 2) {
+        console.log('✅ 所有图片加载完成，显示对比界面');
         setImagesLoaded(true);
       }
       return newCount;
@@ -29,8 +33,18 @@ const BeforeAfterSlider = ({
 
   // 重置加载状态
   useEffect(() => {
+    console.log('🔄 重置图片加载状态', { beforeImage, afterImage });
     setImagesLoaded(false);
     setLoadedCount(0);
+    setHasError(false);
+
+    // 设置超时机制，5秒后强制显示（图片可能很大）
+    const timeout = setTimeout(() => {
+      console.log('⏰ 图片加载超时，强制显示内容');
+      setImagesLoaded(true);
+    }, 5000);
+
+    return () => clearTimeout(timeout);
   }, [beforeImage, afterImage]);
 
   // 处理鼠标/触摸移动
@@ -112,8 +126,19 @@ const BeforeAfterSlider = ({
         <div className="absolute inset-0 bg-slate-100 flex items-center justify-center z-20">
           <div className="flex flex-col items-center space-y-3">
             <div className="w-8 h-8 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin"></div>
-            <span className="text-sm text-slate-600">加载图片中...</span>
+            <span className="text-sm text-slate-600">加载图片中... ({loadedCount}/2)</span>
+            <div className="text-xs text-slate-500">
+              {loadedCount === 0 && "正在加载原图和放大图..."}
+              {loadedCount === 1 && "已加载1张图片，等待另一张..."}
+            </div>
           </div>
+        </div>
+      )}
+
+      {/* 错误提示 */}
+      {hasError && imagesLoaded && (
+        <div className="absolute top-4 left-1/2 transform -translate-x-1/2 bg-red-100 border border-red-300 text-red-700 px-4 py-2 rounded-lg text-sm z-30">
+          ⚠️ 部分图片加载失败，可能影响对比效果
         </div>
       )}
 
@@ -146,8 +171,13 @@ const BeforeAfterSlider = ({
             className="w-full h-full object-contain"
             draggable={false}
             style={{ objectPosition: 'center' }}
-            onLoad={handleImageLoad}
-            onError={() => console.error('After image failed to load')}
+            onLoad={() => handleImageLoad('After')}
+            onError={(e) => {
+              console.error('❌ After image failed to load:', e);
+              console.error('After image URL:', afterImage);
+              setHasError(true);
+              setImagesLoaded(true); // 即使出错也显示界面
+            }}
           />
           {/* After 标签 */}
           <div className="absolute top-4 right-4 bg-gradient-to-r from-emerald-500 to-teal-500 text-white px-3 py-1 rounded-lg text-sm font-medium shadow-lg">
@@ -166,8 +196,13 @@ const BeforeAfterSlider = ({
             className="w-full h-full object-contain"
             draggable={false}
             style={{ objectPosition: 'center' }}
-            onLoad={handleImageLoad}
-            onError={() => console.error('Before image failed to load')}
+            onLoad={() => handleImageLoad('Before')}
+            onError={(e) => {
+              console.error('❌ Before image failed to load:', e);
+              console.error('Before image URL:', beforeImage);
+              setHasError(true);
+              setImagesLoaded(true); // 即使出错也显示界面
+            }}
           />
           {/* Before 标签 */}
           <div className="absolute top-4 left-4 bg-gradient-to-r from-slate-600 to-slate-700 text-white px-3 py-1 rounded-lg text-sm font-medium shadow-lg">
