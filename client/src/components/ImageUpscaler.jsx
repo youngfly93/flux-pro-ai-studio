@@ -107,6 +107,7 @@ const ImageUpscaler = () => {
       const data = await upscaleImage(originalImage.file, upscaleType, finalOptions);
       
       if (data.success && data.imageUrl) {
+        console.log('📊 放大结果数据:', data);
         setUpscaledImage({
           url: data.imageUrl,
           width: data.width || getExpectedDimensions().width,
@@ -404,8 +405,9 @@ const ImageUpscaler = () => {
                   afterImage={upscaledImage.url}
                   beforeLabel="原图"
                   afterLabel={`${upscaleType === 'conservative' ? '保守' : upscaleType === 'creative' ? '创意' : '快速'}放大`}
-                  height="400px"
+                  height="500px"
                   className="shadow-lg"
+                  aspectRatio={`${originalImage.width}/${originalImage.height}`}
                 />
 
                 {/* 详细信息 */}

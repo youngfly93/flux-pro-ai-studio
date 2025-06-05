@@ -2,6 +2,7 @@ const express = require('express');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
+const sharp = require('sharp');
 const fluxService = require('../services/fluxService');
 const stabilityService = require('../services/stabilityService');
 
@@ -299,6 +300,9 @@ router.post('/upscale', upload.single('image'), async (req, res) => {
     const filepath = path.join(__dirname, '../uploads', filename);
     fs.writeFileSync(filepath, upscaledImageBuffer);
 
+    // Get image dimensions using sharp
+    const imageInfo = await sharp(upscaledImageBuffer).metadata();
+
     // Clean up uploaded file
     fs.unlinkSync(req.file.path);
 
@@ -308,7 +312,9 @@ router.post('/upscale', upload.single('image'), async (req, res) => {
       success: true,
       imageUrl: `/uploads/${filename}`,
       type,
-      size: upscaledImageBuffer.length
+      size: upscaledImageBuffer.length,
+      width: imageInfo.width,
+      height: imageInfo.height
     });
 
   } catch (error) {

@@ -1,17 +1,37 @@
 import { useState, useRef, useEffect } from 'react';
 
-const BeforeAfterSlider = ({ 
-  beforeImage, 
-  afterImage, 
-  beforeLabel = "原图", 
+const BeforeAfterSlider = ({
+  beforeImage,
+  afterImage,
+  beforeLabel = "原图",
   afterLabel = "AI 处理后",
   className = "",
-  height = "400px"
+  height = "400px",
+  aspectRatio = null // 新增：支持自定义宽高比
 }) => {
   const [sliderPosition, setSliderPosition] = useState(50);
   const [isDragging, setIsDragging] = useState(false);
+  const [imagesLoaded, setImagesLoaded] = useState(false);
+  const [loadedCount, setLoadedCount] = useState(0);
   const containerRef = useRef(null);
   const sliderRef = useRef(null);
+
+  // 图片加载完成处理
+  const handleImageLoad = () => {
+    setLoadedCount(prev => {
+      const newCount = prev + 1;
+      if (newCount >= 2) {
+        setImagesLoaded(true);
+      }
+      return newCount;
+    });
+  };
+
+  // 重置加载状态
+  useEffect(() => {
+    setImagesLoaded(false);
+    setLoadedCount(0);
+  }, [beforeImage, afterImage]);
 
   // 处理鼠标/触摸移动
   const handleMove = (clientX) => {
@@ -87,11 +107,27 @@ const BeforeAfterSlider = ({
 
   return (
     <div className={`relative overflow-hidden rounded-xl border border-slate-200 ${className}`}>
+      {/* 加载指示器 */}
+      {!imagesLoaded && (
+        <div className="absolute inset-0 bg-slate-100 flex items-center justify-center z-20">
+          <div className="flex flex-col items-center space-y-3">
+            <div className="w-8 h-8 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin"></div>
+            <span className="text-sm text-slate-600">加载图片中...</span>
+          </div>
+        </div>
+      )}
+
       {/* 容器 */}
       <div
         ref={containerRef}
-        className="relative cursor-col-resize select-none"
-        style={{ height }}
+        className={`relative cursor-col-resize select-none ${!imagesLoaded ? 'opacity-0' : 'opacity-100'} transition-opacity duration-300`}
+        style={{
+          height: aspectRatio ? 'auto' : height,
+          aspectRatio: aspectRatio || 'auto',
+          minHeight: '300px', // 确保最小高度
+          maxHeight: '600px', // 限制最大高度
+          width: '100%'
+        }}
         onMouseDown={handleMouseDown}
         onTouchStart={handleTouchStart}
         onKeyDown={handleKeyDown}
@@ -107,8 +143,11 @@ const BeforeAfterSlider = ({
           <img
             src={afterImage}
             alt={afterLabel}
-            className="w-full h-full object-cover"
+            className="w-full h-full object-contain"
             draggable={false}
+            style={{ objectPosition: 'center' }}
+            onLoad={handleImageLoad}
+            onError={() => console.error('After image failed to load')}
           />
           {/* After 标签 */}
           <div className="absolute top-4 right-4 bg-gradient-to-r from-emerald-500 to-teal-500 text-white px-3 py-1 rounded-lg text-sm font-medium shadow-lg">
@@ -124,8 +163,11 @@ const BeforeAfterSlider = ({
           <img
             src={beforeImage}
             alt={beforeLabel}
-            className="w-full h-full object-cover"
+            className="w-full h-full object-contain"
             draggable={false}
+            style={{ objectPosition: 'center' }}
+            onLoad={handleImageLoad}
+            onError={() => console.error('Before image failed to load')}
           />
           {/* Before 标签 */}
           <div className="absolute top-4 left-4 bg-gradient-to-r from-slate-600 to-slate-700 text-white px-3 py-1 rounded-lg text-sm font-medium shadow-lg">
