@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { generateImage } from '../services/api';
+import { generateImage, SERVER_BASE_URL } from '../services/api';
 import ModelSelector from './ModelSelector';
 
 const ImageGenerator = () => {
@@ -48,7 +48,7 @@ const ImageGenerator = () => {
       
       if (result.success) {
         setGeneratedImage({
-          url: `http://localhost:3001${result.imageUrl}`,
+          url: `${SERVER_BASE_URL}${result.imageUrl}`,
           originalUrl: result.originalUrl
         });
         console.log('✅ 图片生成成功');

@@ -35,7 +35,7 @@
 1. **克隆项目**
 ```bash
 git clone <repository-url>
-cd flux_pro
+cd flux-pro-ai-studio
 ```
 
 2. **安装依赖**
@@ -121,7 +121,7 @@ cd client && npm run dev
 ## 🛠 项目结构
 
 ```
-flux_pro/
+flux-pro-ai-studio/
 ├── server/                 # Node.js 后端
 │   ├── app.js             # Express 服务器主文件
 │   ├── routes/            # API 路由
@@ -186,6 +186,8 @@ flux_pro/
 - `PORT`: 后端服务器端口（默认：3001）
 - `NODE_ENV`: 运行环境（development/production）
 - `CLIENT_URL`: 前端URL（默认：http://localhost:5173）
+- `VITE_API_BASE_URL`: 前端调用的 API 基础地址（默认：http://localhost:3001/api）
+- `UPLOAD_MAX_AGE_DAYS`: 上传文件保留天数（默认：7）
 
 ## 📝 注意事项
 
@@ -194,6 +196,7 @@ flux_pro/
 3. **生成时间**: 图片生成通常需要 30-60 秒
 4. **网络要求**: 需要稳定的网络连接访问 Flux API
 5. **环境变量**: 请勿将 `.env` 文件提交到版本控制系统
+6. **上传清理**: 服务器会定期清理 `server/uploads` 目录中过期的图片文件
 
 ## 🤝 贡献
 
@@ -201,4 +204,4 @@ flux_pro/
 
 ## 📄 许可证
 
-ISC License
+MIT License
