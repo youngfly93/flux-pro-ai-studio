@@ -2,6 +2,50 @@ import React, { useState, useRef } from 'react';
 import { expandImage, SERVER_BASE_URL } from '../services/api';
 import BeforeAfterSlider from './BeforeAfterSlider';
 
+// 错误边界组件
+class ErrorBoundary extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+
+  static getDerivedStateFromError(error) {
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error, errorInfo) {
+    console.error('ImageExpander Error:', error, errorInfo);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="bg-red-50/80 backdrop-blur-sm border border-red-200/50 text-red-700 px-6 py-4 rounded-2xl">
+          <div className="flex items-start space-x-3">
+            <div className="flex-shrink-0">
+              <svg className="h-5 w-5 text-red-500 mt-0.5" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+              </svg>
+            </div>
+            <div>
+              <h3 className="text-sm font-medium text-red-800">组件错误</h3>
+              <p className="mt-1 text-sm text-red-600">扩图组件遇到错误，请刷新页面重试</p>
+              <button
+                onClick={() => window.location.reload()}
+                className="mt-2 px-3 py-1 bg-red-600 text-white rounded text-xs hover:bg-red-700"
+              >
+                刷新页面
+              </button>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    return this.props.children;
+  }
+}
+
 function ImageExpander() {
   const [originalImage, setOriginalImage] = useState(null);
   const [prompt, setPrompt] = useState('');
@@ -141,6 +185,18 @@ function ImageExpander() {
   };
 
   const newDimensions = getNewDimensions();
+
+  // 计算扩展方向描述
+  const getExpandDirection = () => {
+    const directions = [];
+    if (expansionSettings.top > 0) directions.push(`上${expansionSettings.top}px`);
+    if (expansionSettings.bottom > 0) directions.push(`下${expansionSettings.bottom}px`);
+    if (expansionSettings.left > 0) directions.push(`左${expansionSettings.left}px`);
+    if (expansionSettings.right > 0) directions.push(`右${expansionSettings.right}px`);
+    return directions.length > 0 ? directions.join(', ') : '无扩展';
+  };
+
+  const expandDirection = getExpandDirection();
 
   return (
     <div className="space-y-8">
@@ -400,14 +456,14 @@ function ImageExpander() {
                 <div className="font-medium text-slate-700 mb-2">原图信息</div>
                 <div className="space-y-1 text-slate-600">
                   <div>尺寸: {originalImage.width} × {originalImage.height}</div>
-                  <div>比例: {(originalImage.width / originalImage.height).toFixed(2)}:1</div>
+                  <div>比例: {originalImage.height > 0 ? (originalImage.width / originalImage.height).toFixed(2) : '0'}:1</div>
                 </div>
               </div>
               <div className="bg-slate-50 rounded-xl p-4">
                 <div className="font-medium text-slate-700 mb-2">扩展后信息</div>
                 <div className="space-y-1 text-slate-600">
                   <div>尺寸: {newDimensions.width} × {newDimensions.height}</div>
-                  <div>比例: {(newDimensions.width / newDimensions.height).toFixed(2)}:1</div>
+                  <div>比例: {newDimensions.height > 0 ? (newDimensions.width / newDimensions.height).toFixed(2) : '0'}:1</div>
                   <div className="text-emerald-600 font-medium">
                     扩展: {expandDirection}
                   </div>
@@ -466,4 +522,11 @@ function ImageExpander() {
   );
 }
 
-export default ImageExpander;
+// 导出包装了错误边界的组件
+export default function ImageExpanderWithErrorBoundary() {
+  return (
+    <ErrorBoundary>
+      <ImageExpander />
+    </ErrorBoundary>
+  );
+}
