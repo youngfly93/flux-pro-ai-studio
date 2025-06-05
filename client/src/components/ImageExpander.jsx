@@ -390,7 +390,7 @@ function ImageExpander() {
               afterImage={`${SERVER_BASE_URL}${result.imageUrl}`}
               beforeLabel="原图"
               afterLabel="AI 扩展"
-              height="400px"
+              height="600px"
               className="shadow-lg"
             />
 

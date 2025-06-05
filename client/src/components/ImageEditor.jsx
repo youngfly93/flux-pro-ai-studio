@@ -348,7 +348,7 @@ const ImageEditor = () => {
                 afterImage={editedImage.url}
                 beforeLabel="原图"
                 afterLabel="AI 编辑"
-                height="400px"
+                height="600px"
                 className="shadow-lg"
               />
 
