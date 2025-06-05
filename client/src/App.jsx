@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import ImageGenerator from './components/ImageGenerator';
 import ImageEditor from './components/ImageEditor';
 import ImageInpainting from './components/ImageInpainting';
+import ImageExpander from './components/ImageExpander';
 import { healthCheck } from './services/api';
 
 function App() {
@@ -93,6 +94,16 @@ function App() {
             >
               局部重绘
             </button>
+            <button
+              onClick={() => setActiveTab('expand')}
+              className={`px-6 py-3 rounded-xl font-medium transition-all duration-300 ${
+                activeTab === 'expand'
+                  ? 'bg-gradient-to-r from-indigo-500 to-purple-600 text-white shadow-lg transform scale-105'
+                  : 'text-slate-600 hover:text-slate-800 hover:bg-slate-50'
+              }`}
+            >
+              AI 扩图
+            </button>
           </div>
         </div>
 
@@ -119,6 +130,7 @@ function App() {
           {activeTab === 'generate' && <ImageGenerator />}
           {activeTab === 'edit' && <ImageEditor />}
           {activeTab === 'inpaint' && <ImageInpainting />}
+          {activeTab === 'expand' && <ImageExpander />}
         </div>
       </main>
 

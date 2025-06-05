@@ -44,6 +44,25 @@ export const editImage = async (imageFile, prompt, options = {}) => {
   }
 };
 
+// Image expansion API
+export const expandImage = async (imageFile, prompt, options = {}) => {
+  try {
+    const formData = new FormData();
+    formData.append('image', imageFile);
+    formData.append('prompt', prompt);
+    formData.append('options', JSON.stringify(options));
+
+    const response = await api.post('/images/expand', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+    return response.data;
+  } catch (error) {
+    throw new Error(error.response?.data?.error || 'Failed to expand image');
+  }
+};
+
 // Check request status
 export const checkStatus = async (requestId) => {
   try {

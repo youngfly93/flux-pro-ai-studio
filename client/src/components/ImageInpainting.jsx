@@ -81,12 +81,19 @@ function ImageInpainting() {
     maskCanvas.style.width = `${displayWidth}px`;
     maskCanvas.style.height = `${displayHeight}px`;
 
+    // 重置画布状态
+    ctx.globalAlpha = 1;
+    ctx.globalCompositeOperation = 'source-over';
+    maskCtx.globalAlpha = 1;
+    maskCtx.globalCompositeOperation = 'source-over';
+
     // 绘制原图
     ctx.drawImage(img, 0, 0, width, height);
 
-    // 初始化蒙版（透明）
-    maskCtx.fillStyle = 'rgba(0, 0, 0, 0)';
-    maskCtx.fillRect(0, 0, width, height);
+    // 清除蒙版画布（确保完全透明）
+    maskCtx.clearRect(0, 0, width, height);
+
+    console.log('🎨 画布初始化完成:', { width, height, displayWidth, displayHeight });
   };
 
   // 开始绘制
@@ -118,18 +125,24 @@ function ImageInpainting() {
     const maskCtx = maskCanvas.getContext('2d');
 
     // 在主画布上绘制半透明的红色标记
+    ctx.save(); // 保存当前状态
     ctx.globalAlpha = 0.5;
+    ctx.globalCompositeOperation = 'source-over';
     ctx.fillStyle = '#ef4444';
     ctx.beginPath();
     ctx.arc(x, y, (brushSize * scaleX) / 2, 0, 2 * Math.PI);
     ctx.fill();
-    ctx.globalAlpha = 1;
+    ctx.restore(); // 恢复状态
 
     // 在蒙版画布上绘制白色区域
+    maskCtx.save(); // 保存当前状态
+    maskCtx.globalAlpha = 1;
+    maskCtx.globalCompositeOperation = 'source-over';
     maskCtx.fillStyle = '#ffffff';
     maskCtx.beginPath();
     maskCtx.arc(x, y, (brushSize * scaleX) / 2, 0, 2 * Math.PI);
     maskCtx.fill();
+    maskCtx.restore(); // 恢复状态
   };
 
   // 停止绘制
@@ -149,14 +162,27 @@ function ImageInpainting() {
     const ctx = canvas.getContext('2d');
     const maskCtx = maskCanvas.getContext('2d');
 
-    // 重新绘制原图
+    // 重置画布状态
+    ctx.globalAlpha = 1;
+    ctx.globalCompositeOperation = 'source-over';
+
+    // 完全清除主画布并重新绘制原图
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     ctx.drawImage(originalImage, 0, 0, canvas.width, canvas.height);
 
-    // 清除蒙版并重新初始化为透明
+    // 重置蒙版画布状态
+    maskCtx.globalAlpha = 1;
+    maskCtx.globalCompositeOperation = 'source-over';
+
+    // 完全清除蒙版画布
     maskCtx.clearRect(0, 0, maskCanvas.width, maskCanvas.height);
-    maskCtx.fillStyle = 'rgba(0, 0, 0, 0)';
-    maskCtx.fillRect(0, 0, maskCanvas.width, maskCanvas.height);
+
+    // 如果有结果显示，也清除结果，让用户重新开始
+    if (result) {
+      setResult(null);
+    }
+
+    console.log('🧹 清除涂抹完成');
   };
 
   // 生成重绘图片
@@ -186,44 +212,51 @@ function ImageInpainting() {
       }
 
       canvas.toBlob(async (blob) => {
-        // 获取蒙版数据
-        const maskDataUrl = maskCanvas.toDataURL();
+        try {
+          // 获取蒙版数据
+          const maskDataUrl = maskCanvas.toDataURL();
 
-        // 构建完整的提示词 - 使用更温和的描述避免内容审核
-        const fullPrompt = `Replace the selected area with ${prompt.trim()}, maintaining the original style and quality`;
+          // 构建完整的提示词 - 使用更温和的描述避免内容审核
+          const fullPrompt = `Replace the selected area with ${prompt.trim()}, maintaining the original style and quality`;
 
-        console.log('🎨 开始重绘...', {
-          prompt: fullPrompt,
-          hasMask: !!maskDataUrl,
-          blobSize: blob.size,
-          blobType: blob.type
-        });
+          console.log('🎨 开始重绘...', {
+            prompt: fullPrompt,
+            hasMask: !!maskDataUrl,
+            blobSize: blob.size,
+            blobType: blob.type
+          });
 
-        // 创建一个带有正确文件名的 File 对象
-        const imageFile = new File([blob], 'canvas-image.png', {
-          type: 'image/png',
-          lastModified: Date.now()
-        });
+          // 创建一个带有正确文件名的 File 对象
+          const imageFile = new File([blob], 'canvas-image.png', {
+            type: 'image/png',
+            lastModified: Date.now()
+          });
 
-        console.log('📁 Created file:', {
-          name: imageFile.name,
-          type: imageFile.type,
-          size: imageFile.size
-        });
+          console.log('📁 Created file:', {
+            name: imageFile.name,
+            type: imageFile.type,
+            size: imageFile.size
+          });
 
-        // 暂时不传递 mask，先测试基本的图像编辑功能
-        const response = await editImage(imageFile, fullPrompt, {
-          output_format: 'jpeg',
-          safety_tolerance: 2,
-          model: model
-        });
-        setResult(response);
+          // 暂时不传递 mask，先测试基本的图像编辑功能
+          const response = await editImage(imageFile, fullPrompt, {
+            output_format: 'jpeg',
+            safety_tolerance: 2,
+            model: model
+          });
+          setResult(response);
+          console.log('✅ 重绘完成');
+        } catch (blobError) {
+          console.error('重绘错误:', blobError);
+          setError(blobError.message);
+        } finally {
+          setIsGenerating(false);
+        }
       }, 'image/png');
 
     } catch (error) {
-      console.error('重绘错误:', error);
+      console.error('初始化错误:', error);
       setError(error.message);
-    } finally {
       setIsGenerating(false);
     }
   };
@@ -346,6 +379,21 @@ function ImageInpainting() {
         </div>
       )}
 
+      {/* 加载状态 */}
+      {isGenerating && (
+        <div className="bg-indigo-50/80 backdrop-blur-sm border border-indigo-200/50 text-indigo-700 px-6 py-4 rounded-2xl">
+          <div className="flex items-center space-x-3">
+            <div className="flex-shrink-0">
+              <div className="w-6 h-6 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
+            </div>
+            <div>
+              <h3 className="text-sm font-medium text-indigo-800">正在重绘中...</h3>
+              <p className="mt-1 text-sm text-indigo-600">AI 正在处理您的图片，请稍候片刻</p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* 错误信息 */}
       {error && (
         <div className="bg-red-50/80 backdrop-blur-sm border border-red-200/50 text-red-700 px-6 py-4 rounded-2xl">
@@ -376,10 +424,22 @@ function ImageInpainting() {
                   alt="原图"
                   className="w-full border border-slate-200 rounded-xl"
                 />
+                {/* 创建一个独立的显示画布，不影响主画布 */}
                 <canvas
-                  ref={canvasRef}
-                  className="absolute top-0 left-0 w-full h-full border border-slate-200 rounded-xl opacity-60"
-                  style={{ pointerEvents: 'none' }}
+                  ref={(el) => {
+                    if (el && canvasRef.current) {
+                      const ctx = el.getContext('2d');
+                      const mainCanvas = canvasRef.current;
+
+                      // 设置显示画布尺寸
+                      el.width = mainCanvas.width;
+                      el.height = mainCanvas.height;
+
+                      // 复制主画布内容到显示画布
+                      ctx.drawImage(mainCanvas, 0, 0);
+                    }
+                  }}
+                  className="absolute top-0 left-0 w-full h-full border border-slate-200 rounded-xl opacity-60 pointer-events-none"
                 />
               </div>
             </div>
@@ -404,6 +464,26 @@ function ImageInpainting() {
               </svg>
               下载图片
             </a>
+
+            <button
+              onClick={clearMask}
+              className="inline-flex items-center px-4 py-2 bg-slate-500 hover:bg-slate-600 text-white rounded-xl transition-colors duration-200"
+            >
+              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1-1H8a1 1 0 00-1 1v3M4 7h16" />
+              </svg>
+              清除涂抹
+            </button>
+
+            <button
+              onClick={() => setResult(null)}
+              className="inline-flex items-center px-4 py-2 bg-indigo-500 hover:bg-indigo-600 text-white rounded-xl transition-colors duration-200"
+            >
+              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
+              重新编辑
+            </button>
           </div>
         </div>
       )}

@@ -177,6 +177,79 @@ router.post('/edit', upload.single('image'), async (req, res) => {
   }
 });
 
+// Expand uploaded image
+router.post('/expand', upload.single('image'), async (req, res) => {
+  try {
+    const { prompt, options = {} } = req.body;
+
+    if (!prompt) {
+      return res.status(400).json({ error: 'Prompt is required' });
+    }
+
+    if (!req.file) {
+      return res.status(400).json({ error: 'Image file is required' });
+    }
+
+    console.log('🔄 Starting image expansion...');
+
+    // Convert uploaded image to base64
+    const imageBuffer = fs.readFileSync(req.file.path);
+    const imageBase64 = fluxService.imageToBase64(imageBuffer);
+
+    // Parse options if it's a string
+    let parsedOptions = options;
+    if (typeof options === 'string') {
+      try {
+        parsedOptions = JSON.parse(options);
+      } catch (e) {
+        parsedOptions = {};
+      }
+    }
+
+    console.log('📐 Expansion options:', parsedOptions);
+
+    // Create expand request
+    const request = await fluxService.expandImage(imageBase64, prompt, parsedOptions);
+
+    if (!request.id) {
+      return res.status(500).json({ error: 'Failed to create expand request' });
+    }
+
+    // Poll for result
+    const result = await fluxService.pollForResult(request);
+
+    if (result.status === 'Ready' && result.result?.sample) {
+      // Download the expanded image
+      const expandedImageBuffer = await fluxService.downloadImage(result.result.sample);
+
+      // Save to uploads directory
+      const filename = `expanded-${Date.now()}.jpg`;
+      const filepath = path.join(__dirname, '../uploads', filename);
+      fs.writeFileSync(filepath, expandedImageBuffer);
+
+      // Clean up uploaded file
+      fs.unlinkSync(req.file.path);
+
+      res.json({
+        success: true,
+        imageUrl: `/uploads/${filename}`,
+        originalUrl: result.result.sample,
+        requestId: request.id
+      });
+    } else {
+      res.status(500).json({ error: 'Image expansion failed', status: result.status });
+    }
+
+  } catch (error) {
+    console.error('Expand error:', error);
+    // Clean up uploaded file on error
+    if (req.file && fs.existsSync(req.file.path)) {
+      fs.unlinkSync(req.file.path);
+    }
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // Get request status
 router.get('/status/:requestId', async (req, res) => {
   try {

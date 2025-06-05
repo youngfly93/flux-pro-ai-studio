@@ -172,6 +172,60 @@ class FluxService {
     return buffer.toString('base64');
   }
 
+  // Expand image by adding pixels on any side
+  async expandImage(inputImageBase64, prompt, options = {}) {
+    try {
+      this.checkApiKey();
+
+      const requestData = {
+        image: inputImageBase64,
+        prompt,
+        top: options.top || 0,
+        bottom: options.bottom || 0,
+        left: options.left || 0,
+        right: options.right || 0,
+        steps: options.steps || 50,
+        prompt_upsampling: options.prompt_upsampling || false,
+        seed: options.seed || null,
+        guidance: options.guidance || 50.75,
+        output_format: options.output_format || "jpeg",
+        safety_tolerance: options.safety_tolerance || 2
+      };
+
+      // Add webhook parameters if provided
+      if (options.webhook_url) {
+        requestData.webhook_url = options.webhook_url;
+      }
+      if (options.webhook_secret) {
+        requestData.webhook_secret = options.webhook_secret;
+      }
+
+      console.log('🔄 Expanding image with prompt:', prompt);
+      console.log('📐 Expansion settings:', {
+        top: requestData.top,
+        bottom: requestData.bottom,
+        left: requestData.left,
+        right: requestData.right
+      });
+      console.log('📋 Expand request data:', { ...requestData, image: '[BASE64_DATA]' });
+
+      const response = await axios.post(
+        `${this.baseURL}/v1/flux-pro-1.0-expand`,
+        requestData,
+        { headers: this.getHeaders() }
+      );
+
+      console.log('🎯 Expansion response:', response.data);
+      return response.data;
+    } catch (error) {
+      console.error('❌ Error expanding image:');
+      console.error('Status:', error.response?.status);
+      console.error('Data:', error.response?.data);
+      console.error('Message:', error.message);
+      throw new Error(`Failed to expand image: ${error.response?.data?.message || error.message}`);
+    }
+  }
+
   // Download image from URL
   async downloadImage(url) {
     try {
