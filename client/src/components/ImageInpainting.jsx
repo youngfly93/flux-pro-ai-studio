@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { editImage, SERVER_BASE_URL } from '../services/api';
 import ModelSelector from './ModelSelector';
+import BeforeAfterSlider from './BeforeAfterSlider';
 
 function ImageInpainting() {
   const [originalImage, setOriginalImage] = useState(null);
@@ -414,76 +415,85 @@ function ImageInpainting() {
       {/* 结果展示 */}
       {result && (
         <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-white/20 p-8">
-          <h3 className="text-xl font-light text-slate-800 mb-6">重绘结果</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-              <h4 className="text-sm font-medium text-slate-700 mb-3">原图（涂抹区域）</h4>
-              <div className="relative">
-                <img
-                  src={originalImage.src}
-                  alt="原图"
-                  className="w-full border border-slate-200 rounded-xl"
-                />
-                {/* 创建一个独立的显示画布，不影响主画布 */}
-                <canvas
-                  ref={(el) => {
-                    if (el && canvasRef.current) {
-                      const ctx = el.getContext('2d');
-                      const mainCanvas = canvasRef.current;
-
-                      // 设置显示画布尺寸
-                      el.width = mainCanvas.width;
-                      el.height = mainCanvas.height;
-
-                      // 复制主画布内容到显示画布
-                      ctx.drawImage(mainCanvas, 0, 0);
-                    }
-                  }}
-                  className="absolute top-0 left-0 w-full h-full border border-slate-200 rounded-xl opacity-60 pointer-events-none"
-                />
-              </div>
-            </div>
-            <div>
-              <h4 className="text-sm font-medium text-slate-700 mb-3">重绘结果</h4>
-              <img
-                src={`${SERVER_BASE_URL}${result.imageUrl}`}
-                alt="重绘结果"
-                className="w-full border border-slate-200 rounded-xl"
-              />
-            </div>
-          </div>
-
-          <div className="mt-6 flex space-x-4">
+          <div className="flex justify-between items-center mb-6">
+            <h3 className="text-xl font-light text-slate-800">重绘结果对比</h3>
             <a
               href={`${SERVER_BASE_URL}${result.imageUrl}`}
               download="inpainted-image.jpg"
-              className="inline-flex items-center px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl transition-colors duration-200"
+              className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-emerald-500 to-teal-500 text-white rounded-xl hover:from-emerald-600 hover:to-teal-600 transition-all duration-200"
             >
               <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
               </svg>
-              下载图片
+              下载重绘图
             </a>
+          </div>
 
-            <button
-              onClick={clearMask}
-              className="inline-flex items-center px-4 py-2 bg-slate-500 hover:bg-slate-600 text-white rounded-xl transition-colors duration-200"
-            >
-              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1-1H8a1 1 0 00-1 1v3M4 7h16" />
-              </svg>
-              清除涂抹
-            </button>
+          <div className="space-y-6">
+            {/* Before-After Slider */}
+            <BeforeAfterSlider
+              beforeImage={originalImage.src}
+              afterImage={`${SERVER_BASE_URL}${result.imageUrl}`}
+              beforeLabel="原图"
+              afterLabel="AI 重绘"
+              height="400px"
+              className="shadow-lg"
+            />
 
-            <button
-              onClick={() => setResult(null)}
-              className="inline-flex items-center px-4 py-2 bg-indigo-500 hover:bg-indigo-600 text-white rounded-xl transition-colors duration-200"
-            >
-              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-              </svg>
-              重新编辑
-            </button>
+            {/* 重绘信息 */}
+            <div className="bg-slate-50/50 rounded-2xl p-4">
+              <div className="flex items-start space-x-3">
+                <div className="flex-shrink-0">
+                  <svg className="w-5 h-5 text-indigo-500 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 4V2a1 1 0 011-1h4a1 1 0 011 1v2h4a1 1 0 011 1v1a1 1 0 01-1 1v9a2 2 0 01-2 2H7a2 2 0 01-2-2V7a1 1 0 01-1-1V5a1 1 0 011-1h4z" />
+                  </svg>
+                </div>
+                <div className="flex-1">
+                  <h4 className="text-sm font-medium text-slate-700 mb-1">重绘提示词</h4>
+                  <p className="text-sm text-slate-600 font-light">{prompt}</p>
+                </div>
+              </div>
+            </div>
+
+            {/* 操作按钮 */}
+            <div className="flex flex-wrap gap-3">
+              <button
+                onClick={clearMask}
+                className="inline-flex items-center px-4 py-2 bg-slate-500 hover:bg-slate-600 text-white rounded-xl transition-colors duration-200"
+              >
+                <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1-1H8a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+                清除涂抹
+              </button>
+
+              <button
+                onClick={() => setResult(null)}
+                className="inline-flex items-center px-4 py-2 bg-indigo-500 hover:bg-indigo-600 text-white rounded-xl transition-colors duration-200"
+              >
+                <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+                重新编辑
+              </button>
+            </div>
+
+            {/* 使用提示 */}
+            <div className="bg-indigo-50 rounded-xl p-4 border border-indigo-200">
+              <div className="flex items-start space-x-3">
+                <div className="flex-shrink-0">
+                  <svg className="w-5 h-5 text-indigo-500 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </div>
+                <div>
+                  <h4 className="text-sm font-medium text-indigo-800">对比提示</h4>
+                  <p className="mt-1 text-sm text-indigo-700">
+                    拖动滑块查看 AI 重绘前后的对比效果。左侧为原图，右侧为 AI 重绘后的结果。
+                  </p>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       )}

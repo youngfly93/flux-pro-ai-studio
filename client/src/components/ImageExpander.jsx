@@ -1,5 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { expandImage, SERVER_BASE_URL } from '../services/api';
+import BeforeAfterSlider from './BeforeAfterSlider';
 
 function ImageExpander() {
   const [originalImage, setOriginalImage] = useState(null);
@@ -368,57 +369,96 @@ function ImageExpander() {
       {/* 结果展示 */}
       {result && (
         <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-white/20 p-8">
-          <h3 className="text-xl font-light text-slate-800 mb-6">扩展结果</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-              <h4 className="text-sm font-medium text-slate-700 mb-3">原图</h4>
-              <div className="relative">
-                <img
-                  src={originalImage.src}
-                  alt="原图"
-                  className="w-full border border-slate-200 rounded-xl"
-                />
-                <div className="absolute bottom-2 left-2 bg-black/70 text-white text-xs px-2 py-1 rounded">
-                  {originalImage.width} × {originalImage.height}
-                </div>
-              </div>
-            </div>
-            <div>
-              <h4 className="text-sm font-medium text-slate-700 mb-3">扩展结果</h4>
-              <div className="relative">
-                <img
-                  src={`${SERVER_BASE_URL}${result.imageUrl}`}
-                  alt="扩展结果"
-                  className="w-full border border-slate-200 rounded-xl"
-                />
-                <div className="absolute bottom-2 left-2 bg-black/70 text-white text-xs px-2 py-1 rounded">
-                  {newDimensions.width} × {newDimensions.height}
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className="mt-6 flex space-x-4">
+          <div className="flex justify-between items-center mb-6">
+            <h3 className="text-xl font-light text-slate-800">扩展结果对比</h3>
             <a
               href={`${SERVER_BASE_URL}${result.imageUrl}`}
               download="expanded-image.jpg"
-              className="inline-flex items-center px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl transition-colors duration-200"
+              className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-emerald-500 to-teal-500 text-white rounded-xl hover:from-emerald-600 hover:to-teal-600 transition-all duration-200"
             >
               <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
               </svg>
-              下载图片
+              下载扩展图
             </a>
+          </div>
 
-            <button
-              onClick={() => setResult(null)}
-              className="inline-flex items-center px-4 py-2 bg-indigo-500 hover:bg-indigo-600 text-white rounded-xl transition-colors duration-200"
-            >
-              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-              </svg>
-              重新扩展
-            </button>
+          <div className="space-y-6">
+            {/* Before-After Slider */}
+            <BeforeAfterSlider
+              beforeImage={originalImage.src}
+              afterImage={`${SERVER_BASE_URL}${result.imageUrl}`}
+              beforeLabel="原图"
+              afterLabel="AI 扩展"
+              height="400px"
+              className="shadow-lg"
+            />
+
+            {/* 扩展信息 */}
+            <div className="grid grid-cols-2 gap-4 text-sm">
+              <div className="bg-slate-50 rounded-xl p-4">
+                <div className="font-medium text-slate-700 mb-2">原图信息</div>
+                <div className="space-y-1 text-slate-600">
+                  <div>尺寸: {originalImage.width} × {originalImage.height}</div>
+                  <div>比例: {(originalImage.width / originalImage.height).toFixed(2)}:1</div>
+                </div>
+              </div>
+              <div className="bg-slate-50 rounded-xl p-4">
+                <div className="font-medium text-slate-700 mb-2">扩展后信息</div>
+                <div className="space-y-1 text-slate-600">
+                  <div>尺寸: {newDimensions.width} × {newDimensions.height}</div>
+                  <div>比例: {(newDimensions.width / newDimensions.height).toFixed(2)}:1</div>
+                  <div className="text-emerald-600 font-medium">
+                    扩展: {expandDirection}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* 扩展提示词 */}
+            <div className="bg-slate-50/50 rounded-2xl p-4">
+              <div className="flex items-start space-x-3">
+                <div className="flex-shrink-0">
+                  <svg className="w-5 h-5 text-indigo-500 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8V4a2 2 0 012-2h4M4 16v4a2 2 0 002 2h4m8-16V4a2 2 0 00-2-2h-4m8 12v4a2 2 0 01-2 2h-4" />
+                  </svg>
+                </div>
+                <div className="flex-1">
+                  <h4 className="text-sm font-medium text-slate-700 mb-1">扩展提示词</h4>
+                  <p className="text-sm text-slate-600 font-light">{prompt}</p>
+                </div>
+              </div>
+            </div>
+
+            {/* 操作按钮 */}
+            <div className="flex space-x-4">
+              <button
+                onClick={() => setResult(null)}
+                className="inline-flex items-center px-4 py-2 bg-indigo-500 hover:bg-indigo-600 text-white rounded-xl transition-colors duration-200"
+              >
+                <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+                重新扩展
+              </button>
+            </div>
+
+            {/* 使用提示 */}
+            <div className="bg-indigo-50 rounded-xl p-4 border border-indigo-200">
+              <div className="flex items-start space-x-3">
+                <div className="flex-shrink-0">
+                  <svg className="w-5 h-5 text-indigo-500 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </div>
+                <div>
+                  <h4 className="text-sm font-medium text-indigo-800">对比提示</h4>
+                  <p className="mt-1 text-sm text-indigo-700">
+                    拖动滑块查看 AI 扩展前后的对比效果。左侧为原图，右侧为 AI 扩展后的结果。
+                  </p>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       )}

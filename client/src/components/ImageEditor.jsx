@@ -1,6 +1,7 @@
 import { useState, useRef } from 'react';
 import { editImage, SERVER_BASE_URL } from '../services/api';
 import ModelSelector from './ModelSelector';
+import BeforeAfterSlider from './BeforeAfterSlider';
 
 const ImageEditor = () => {
   const [selectedFile, setSelectedFile] = useState(null);
@@ -328,53 +329,60 @@ const ImageEditor = () => {
         {editedImage && (
           <div className="mt-8">
             <div className="flex justify-between items-center mb-6">
-              <h3 className="text-lg font-medium text-slate-800">编辑结果</h3>
+              <h3 className="text-lg font-medium text-slate-800">编辑结果对比</h3>
               <button
                 onClick={handleDownload}
-                className="px-6 py-2 bg-white/80 border border-slate-200/50 text-slate-700 font-medium rounded-xl hover:bg-white hover:border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 transition-all duration-200"
+                className="px-6 py-2 bg-gradient-to-r from-emerald-500 to-teal-500 text-white font-medium rounded-xl hover:from-emerald-600 hover:to-teal-600 transition-all duration-200 flex items-center space-x-2"
               >
-                <div className="flex items-center space-x-2">
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                  </svg>
-                  <span>下载</span>
-                </div>
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                <span>下载编辑图</span>
               </button>
             </div>
 
-            {/* 对比显示 */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <div>
-                <h4 className="text-sm font-medium text-slate-700 mb-3">原图</h4>
-                <div className="bg-white/50 border border-slate-200/50 rounded-3xl overflow-hidden shadow-lg">
-                  {previewUrl && (
-                    <img
-                      src={previewUrl}
-                      alt="Original"
-                      className="w-full h-auto"
-                    />
-                  )}
+            <div className="space-y-6">
+              {/* Before-After Slider */}
+              <BeforeAfterSlider
+                beforeImage={previewUrl}
+                afterImage={editedImage.url}
+                beforeLabel="原图"
+                afterLabel="AI 编辑"
+                height="400px"
+                className="shadow-lg"
+              />
+
+              {/* 编辑信息 */}
+              <div className="bg-slate-50/50 rounded-2xl p-4">
+                <div className="flex items-start space-x-3">
+                  <div className="flex-shrink-0">
+                    <svg className="w-5 h-5 text-indigo-500 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                    </svg>
+                  </div>
+                  <div className="flex-1">
+                    <h4 className="text-sm font-medium text-slate-700 mb-1">编辑提示词</h4>
+                    <p className="text-sm text-slate-600 font-light">{prompt}</p>
+                  </div>
                 </div>
               </div>
-              <div>
-                <h4 className="text-sm font-medium text-slate-700 mb-3">编辑后</h4>
-                <div className="bg-white/50 border border-slate-200/50 rounded-3xl overflow-hidden shadow-lg">
-                  <img
-                    src={editedImage.url}
-                    alt="Edited"
-                    className="w-full h-auto"
-                    onError={(e) => {
-                      console.error('图片加载失败');
-                      setError('图片加载失败');
-                    }}
-                  />
+
+              {/* 使用提示 */}
+              <div className="bg-indigo-50 rounded-xl p-4 border border-indigo-200">
+                <div className="flex items-start space-x-3">
+                  <div className="flex-shrink-0">
+                    <svg className="w-5 h-5 text-indigo-500 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-medium text-indigo-800">对比提示</h4>
+                    <p className="mt-1 text-sm text-indigo-700">
+                      拖动滑块查看 AI 编辑前后的对比效果。左侧为原图，右侧为 AI 编辑后的结果。
+                    </p>
+                  </div>
                 </div>
               </div>
-            </div>
-            <div className="mt-6 p-4 bg-slate-50/50 rounded-2xl">
-              <p className="text-sm text-slate-600 font-light">
-                <span className="font-medium">编辑指令:</span> {prompt}
-              </p>
             </div>
           </div>
         )}

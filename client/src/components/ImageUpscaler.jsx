@@ -1,5 +1,6 @@
 import { useState, useRef } from 'react';
 import { upscaleImage } from '../services/api';
+import BeforeAfterSlider from './BeforeAfterSlider';
 
 const ImageUpscaler = () => {
   const [originalImage, setOriginalImage] = useState(null);
@@ -384,7 +385,7 @@ const ImageUpscaler = () => {
           {upscaledImage && (
             <div className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-lg border border-white/20 p-8">
               <div className="flex justify-between items-center mb-6">
-                <h3 className="text-xl font-medium text-slate-800">放大结果</h3>
+                <h3 className="text-xl font-medium text-slate-800">放大结果对比</h3>
                 <button
                   onClick={downloadImage}
                   className="bg-gradient-to-r from-emerald-500 to-teal-500 text-white px-4 py-2 rounded-xl font-medium hover:from-emerald-600 hover:to-teal-600 transition-all duration-300 flex items-center space-x-2"
@@ -392,30 +393,56 @@ const ImageUpscaler = () => {
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                   </svg>
-                  <span>下载</span>
+                  <span>下载高清图</span>
                 </button>
               </div>
-              
-              <div className="space-y-4">
-                <div className="relative">
-                  <img
-                    src={upscaledImage.url}
-                    alt="放大结果"
-                    className="w-full h-64 object-cover rounded-xl border border-slate-200"
-                  />
-                  <div className="absolute bottom-2 left-2 bg-black/70 text-white px-2 py-1 rounded-lg text-xs">
-                    {upscaledImage.width} × {upscaledImage.height}
+
+              <div className="space-y-6">
+                {/* Before-After Slider */}
+                <BeforeAfterSlider
+                  beforeImage={originalImage.url}
+                  afterImage={upscaledImage.url}
+                  beforeLabel="原图"
+                  afterLabel={`${upscaleType === 'conservative' ? '保守' : upscaleType === 'creative' ? '创意' : '快速'}放大`}
+                  height="400px"
+                  className="shadow-lg"
+                />
+
+                {/* 详细信息 */}
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div className="bg-slate-50 rounded-xl p-4">
+                    <div className="font-medium text-slate-700 mb-2">原图信息</div>
+                    <div className="space-y-1 text-slate-600">
+                      <div>尺寸: {originalImage.width} × {originalImage.height}</div>
+                      <div>大小: {formatFileSize(originalImage.size)}</div>
+                    </div>
+                  </div>
+                  <div className="bg-slate-50 rounded-xl p-4">
+                    <div className="font-medium text-slate-700 mb-2">放大后信息</div>
+                    <div className="space-y-1 text-slate-600">
+                      <div>尺寸: {upscaledImage.width} × {upscaledImage.height}</div>
+                      <div>大小: {formatFileSize(upscaledImage.size)}</div>
+                      <div className="text-emerald-600 font-medium">
+                        放大倍数: {getUpscaleMultiplier()}x
+                      </div>
+                    </div>
                   </div>
                 </div>
-                
-                <div className="grid grid-cols-2 gap-4 text-sm">
-                  <div className="bg-slate-50 rounded-xl p-3">
-                    <div className="font-medium text-slate-700">尺寸</div>
-                    <div className="text-slate-600">{upscaledImage.width} × {upscaledImage.height}</div>
-                  </div>
-                  <div className="bg-slate-50 rounded-xl p-3">
-                    <div className="font-medium text-slate-700">文件大小</div>
-                    <div className="text-slate-600">{formatFileSize(upscaledImage.size)}</div>
+
+                {/* 使用提示 */}
+                <div className="bg-indigo-50 rounded-xl p-4 border border-indigo-200">
+                  <div className="flex items-start space-x-3">
+                    <div className="flex-shrink-0">
+                      <svg className="w-5 h-5 text-indigo-500 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                    </div>
+                    <div>
+                      <h4 className="text-sm font-medium text-indigo-800">使用提示</h4>
+                      <p className="mt-1 text-sm text-indigo-700">
+                        拖动中间的滑块可以对比原图和放大后的效果。您也可以使用键盘左右箭头键进行精细调节。
+                      </p>
+                    </div>
                   </div>
                 </div>
               </div>
