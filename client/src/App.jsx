@@ -3,6 +3,7 @@ import ImageGenerator from './components/ImageGenerator';
 import ImageEditor from './components/ImageEditor';
 import ImageInpainting from './components/ImageInpainting';
 import ImageExpander from './components/ImageExpander';
+import ImageUpscaler from './components/ImageUpscaler';
 import { healthCheck } from './services/api';
 
 function App() {
@@ -104,6 +105,16 @@ function App() {
             >
               AI 扩图
             </button>
+            <button
+              onClick={() => setActiveTab('upscale')}
+              className={`px-6 py-3 rounded-xl font-medium transition-all duration-300 ${
+                activeTab === 'upscale'
+                  ? 'bg-gradient-to-r from-indigo-500 to-purple-600 text-white shadow-lg transform scale-105'
+                  : 'text-slate-600 hover:text-slate-800 hover:bg-slate-50'
+              }`}
+            >
+              高清放大
+            </button>
           </div>
         </div>
 
@@ -131,6 +142,7 @@ function App() {
           {activeTab === 'edit' && <ImageEditor />}
           {activeTab === 'inpaint' && <ImageInpainting />}
           {activeTab === 'expand' && <ImageExpander />}
+          {activeTab === 'upscale' && <ImageUpscaler />}
         </div>
       </main>
 

@@ -3,6 +3,7 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 const fluxService = require('../services/fluxService');
+const stabilityService = require('../services/stabilityService');
 
 const router = express.Router();
 
@@ -242,6 +243,76 @@ router.post('/expand', upload.single('image'), async (req, res) => {
 
   } catch (error) {
     console.error('Expand error:', error);
+    // Clean up uploaded file on error
+    if (req.file && fs.existsSync(req.file.path)) {
+      fs.unlinkSync(req.file.path);
+    }
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Upscale uploaded image using Stability AI
+router.post('/upscale', upload.single('image'), async (req, res) => {
+  try {
+    const { type = 'conservative', prompt, creativity, output_format = 'png' } = req.body;
+
+    if (!req.file) {
+      return res.status(400).json({ error: 'Image file is required' });
+    }
+
+    console.log('🔍 Starting image upscaling...', {
+      type,
+      hasPrompt: !!prompt,
+      creativity,
+      output_format
+    });
+
+    // Read uploaded image
+    const imageBuffer = fs.readFileSync(req.file.path);
+
+    // Prepare options
+    const options = {
+      prompt,
+      creativity: creativity ? parseFloat(creativity) : undefined,
+      output_format
+    };
+
+    let upscaledImageBuffer;
+
+    // Choose upscaling method based on type
+    switch (type) {
+      case 'conservative':
+        upscaledImageBuffer = await stabilityService.upscaleImageConservative(imageBuffer, options);
+        break;
+      case 'creative':
+        upscaledImageBuffer = await stabilityService.upscaleImageCreative(imageBuffer, options);
+        break;
+      case 'fast':
+        upscaledImageBuffer = await stabilityService.upscaleImageFast(imageBuffer, options);
+        break;
+      default:
+        throw new Error(`Unsupported upscale type: ${type}`);
+    }
+
+    // Save upscaled image
+    const filename = `upscaled-${type}-${Date.now()}.${output_format}`;
+    const filepath = path.join(__dirname, '../uploads', filename);
+    fs.writeFileSync(filepath, upscaledImageBuffer);
+
+    // Clean up uploaded file
+    fs.unlinkSync(req.file.path);
+
+    console.log('✅ Image upscaling completed');
+
+    res.json({
+      success: true,
+      imageUrl: `/uploads/${filename}`,
+      type,
+      size: upscaledImageBuffer.length
+    });
+
+  } catch (error) {
+    console.error('Upscale error:', error);
     // Clean up uploaded file on error
     if (req.file && fs.existsSync(req.file.path)) {
       fs.unlinkSync(req.file.path);

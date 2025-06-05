@@ -75,6 +75,45 @@ export const checkStatus = async (requestId) => {
 };
 
 // Health check
+// AI Image Upscaling
+export const upscaleImage = async (imageFile, upscaleType = 'conservative', options = {}) => {
+  try {
+    const formData = new FormData();
+    formData.append('image', imageFile);
+    formData.append('type', upscaleType);
+
+    // Add options
+    if (options.prompt) {
+      formData.append('prompt', options.prompt);
+    }
+    if (options.creativity !== undefined) {
+      formData.append('creativity', options.creativity.toString());
+    }
+    if (options.output_format) {
+      formData.append('output_format', options.output_format);
+    }
+
+    const response = await api.post('/images/upscale', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+      timeout: 120000, // 2 minutes timeout
+    });
+
+    if (response.data.error) {
+      throw new Error(response.data.error);
+    }
+
+    return response.data;
+  } catch (error) {
+    console.error('Upscale API error:', error);
+    if (error.response?.data?.error) {
+      throw new Error(`Failed to upscale image: ${error.response.data.error}`);
+    }
+    throw new Error(`Failed to upscale image: ${error.message}`);
+  }
+};
+
 export const healthCheck = async () => {
   try {
     const response = await api.get('/health');
