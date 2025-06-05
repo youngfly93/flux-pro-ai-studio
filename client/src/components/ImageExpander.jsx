@@ -386,7 +386,7 @@ function ImageExpander() {
           <div className="space-y-6">
             {/* Before-After Slider */}
             <BeforeAfterSlider
-              beforeImage={originalImage.src}
+              beforeImage={originalImage?.src}
               afterImage={`${SERVER_BASE_URL}${result.imageUrl}`}
               beforeLabel="原图"
               afterLabel="AI 扩展"

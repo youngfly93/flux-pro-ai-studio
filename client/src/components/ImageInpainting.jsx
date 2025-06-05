@@ -27,7 +27,13 @@ function ImageInpainting() {
         const img = new Image();
         img.onload = () => {
           console.log('🖼️ 图片加载完成:', img.width, 'x', img.height);
-          setOriginalImage(img);
+          setOriginalImage({
+            src: e.target.result,
+            file: file,
+            width: img.width,
+            height: img.height,
+            imageElement: img // 保留 Image 对象用于画布操作
+          });
           // 延迟初始化画布，确保 DOM 已更新
           setTimeout(() => {
             initializeCanvas(img);
@@ -169,7 +175,7 @@ function ImageInpainting() {
 
     // 完全清除主画布并重新绘制原图
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    ctx.drawImage(originalImage, 0, 0, canvas.width, canvas.height);
+    ctx.drawImage(originalImage.imageElement, 0, 0, canvas.width, canvas.height);
 
     // 重置蒙版画布状态
     maskCtx.globalAlpha = 1;
@@ -432,7 +438,7 @@ function ImageInpainting() {
           <div className="space-y-6">
             {/* Before-After Slider */}
             <BeforeAfterSlider
-              beforeImage={originalImage.src}
+              beforeImage={originalImage?.src}
               afterImage={`${SERVER_BASE_URL}${result.imageUrl}`}
               beforeLabel="原图"
               afterLabel="AI 重绘"
