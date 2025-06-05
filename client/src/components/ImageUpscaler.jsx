@@ -148,12 +148,13 @@ const ImageUpscaler = () => {
         </p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        {/* 左侧：上传和设置 */}
-        <div className="space-y-6">
-          <div className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-lg border border-white/20 p-8">
-            <h3 className="text-xl font-medium text-slate-800 mb-6">上传图片</h3>
-            
+      <div className="space-y-8">
+        {/* 上传和设置区域 */}
+        <div className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-lg border border-white/20 p-8">
+          <h3 className="text-xl font-medium text-slate-800 mb-6">上传图片</h3>
+
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            {/* 第一列：文件上传 */}
             <div className="space-y-6">
               {/* 文件上传区域 */}
               <div
@@ -200,257 +201,251 @@ const ImageUpscaler = () => {
                   </div>
                 </div>
               )}
+            </div>
 
-              {/* 放大模式选择 */}
-              <div className="space-y-4">
-                <h4 className="font-medium text-slate-700">放大模式</h4>
-                <div className="grid grid-cols-1 gap-3">
-                  <label className="flex items-center space-x-3 p-4 border border-slate-200 rounded-xl cursor-pointer hover:bg-slate-50 transition-colors">
-                    <input
-                      type="radio"
-                      name="upscaleType"
-                      value="conservative"
-                      checked={upscaleType === 'conservative'}
-                      onChange={(e) => setUpscaleType(e.target.value)}
-                      className="text-indigo-600"
-                    />
-                    <div>
-                      <div className="font-medium text-slate-800">保守放大 (4x)</div>
-                      <div className="text-sm text-slate-600">保持原图风格，提升清晰度</div>
-                    </div>
-                  </label>
+            {/* 第二列：放大模式选择 */}
+            <div className="space-y-4">
+              <h4 className="font-medium text-slate-700">放大模式</h4>
+              <div className="grid grid-cols-1 gap-3">
+                <label className="flex items-center space-x-3 p-4 border border-slate-200 rounded-xl cursor-pointer hover:bg-slate-50 transition-colors">
+                  <input
+                    type="radio"
+                    name="upscaleType"
+                    value="conservative"
+                    checked={upscaleType === 'conservative'}
+                    onChange={(e) => setUpscaleType(e.target.value)}
+                    className="text-indigo-600"
+                  />
+                  <div>
+                    <div className="font-medium text-slate-800">保守放大 (4x)</div>
+                    <div className="text-sm text-slate-600">保持原图风格，提升清晰度</div>
+                  </div>
+                </label>
 
-                  <label className="flex items-center space-x-3 p-4 border border-slate-200 rounded-xl cursor-pointer hover:bg-slate-50 transition-colors">
-                    <input
-                      type="radio"
-                      name="upscaleType"
-                      value="creative"
-                      checked={upscaleType === 'creative'}
-                      onChange={(e) => setUpscaleType(e.target.value)}
-                      className="text-indigo-600"
-                    />
-                    <div>
-                      <div className="font-medium text-slate-800">创意放大 (4x)</div>
-                      <div className="text-sm text-slate-600">AI 增强细节，添加创意元素</div>
-                    </div>
-                  </label>
+                <label className="flex items-center space-x-3 p-4 border border-slate-200 rounded-xl cursor-pointer hover:bg-slate-50 transition-colors">
+                  <input
+                    type="radio"
+                    name="upscaleType"
+                    value="creative"
+                    checked={upscaleType === 'creative'}
+                    onChange={(e) => setUpscaleType(e.target.value)}
+                    className="text-indigo-600"
+                  />
+                  <div>
+                    <div className="font-medium text-slate-800">创意放大 (4x)</div>
+                    <div className="text-sm text-slate-600">AI 增强细节，添加创意元素</div>
+                  </div>
+                </label>
 
-                  <label className="flex items-center space-x-3 p-4 border border-slate-200 rounded-xl cursor-pointer hover:bg-slate-50 transition-colors">
+                <label className="flex items-center space-x-3 p-4 border border-slate-200 rounded-xl cursor-pointer hover:bg-slate-50 transition-colors">
+                  <input
+                    type="radio"
+                    name="upscaleType"
+                    value="fast"
+                    checked={upscaleType === 'fast'}
+                    onChange={(e) => setUpscaleType(e.target.value)}
+                    className="text-indigo-600"
+                  />
+                  <div>
+                    <div className="font-medium text-slate-800">快速放大 (2x)</div>
+                    <div className="text-sm text-slate-600">速度最快，基础放大</div>
+                  </div>
+                </label>
+              </div>
+            </div>
+
+            {/* 第三列：高级选项和操作 */}
+            <div className="space-y-4">
+              <h4 className="font-medium text-slate-700">高级选项</h4>
+
+              {/* 保守放大选项 */}
+              {upscaleType === 'conservative' && (
+                <div className="space-y-4 mb-6">
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-2">
+                      增强提示词 (可选)
+                    </label>
                     <input
-                      type="radio"
-                      name="upscaleType"
-                      value="fast"
-                      checked={upscaleType === 'fast'}
-                      onChange={(e) => setUpscaleType(e.target.value)}
-                      className="text-indigo-600"
+                      type="text"
+                      value={upscaleOptions.prompt}
+                      onChange={(e) => handleOptionChange('prompt', e.target.value)}
+                      placeholder="默认：high quality, detailed, sharp"
+                      className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm"
                     />
-                    <div>
-                      <div className="font-medium text-slate-800">快速放大 (2x)</div>
-                      <div className="text-sm text-slate-600">速度最快，基础放大</div>
+                    <div className="text-xs text-slate-500 mt-1">
+                      留空将使用默认提示词，保持原图风格
                     </div>
-                  </label>
+                  </div>
                 </div>
-              </div>
+              )}
 
-              {/* 高级选项 */}
-              <div className="space-y-4">
-                <h4 className="font-medium text-slate-700">高级选项</h4>
+              {/* 创意放大选项 */}
+              {upscaleType === 'creative' && (
+                <div className="space-y-4 mb-6">
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-2">
+                      增强提示词 (可选)
+                    </label>
+                    <input
+                      type="text"
+                      value={upscaleOptions.prompt}
+                      onChange={(e) => handleOptionChange('prompt', e.target.value)}
+                      placeholder="默认：enhance image quality, add details, improve sharpness"
+                      className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm"
+                    />
+                  </div>
 
-                {/* 保守放大选项 */}
-                {upscaleType === 'conservative' && (
-                  <div className="space-y-4 mb-6">
-                    <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-2">
-                        增强提示词 (可选)
-                      </label>
-                      <input
-                        type="text"
-                        value={upscaleOptions.prompt}
-                        onChange={(e) => handleOptionChange('prompt', e.target.value)}
-                        placeholder="默认：high quality, detailed, sharp"
-                        className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm"
-                      />
-                      <div className="text-xs text-slate-500 mt-1">
-                        留空将使用默认提示词，保持原图风格
-                      </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-2">
+                      创意程度: {upscaleOptions.creativity}
+                    </label>
+                    <input
+                      type="range"
+                      min="0"
+                      max="1"
+                      step="0.05"
+                      value={upscaleOptions.creativity}
+                      onChange={(e) => handleOptionChange('creativity', parseFloat(e.target.value))}
+                      className="w-full"
+                    />
+                    <div className="flex justify-between text-xs text-slate-500 mt-1">
+                      <span>保守 (0)</span>
+                      <span>创意 (1)</span>
                     </div>
                   </div>
-                )}
+                </div>
+              )}
 
-                {/* 创意放大选项 */}
-                {upscaleType === 'creative' && (
-                  <div className="space-y-4 mb-6">
-                    <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-2">
-                        增强提示词 (可选)
-                      </label>
-                      <input
-                        type="text"
-                        value={upscaleOptions.prompt}
-                        onChange={(e) => handleOptionChange('prompt', e.target.value)}
-                        placeholder="默认：enhance image quality, add details, improve sharpness"
-                        className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-2">
-                        创意程度: {upscaleOptions.creativity}
-                      </label>
-                      <input
-                        type="range"
-                        min="0"
-                        max="1"
-                        step="0.05"
-                        value={upscaleOptions.creativity}
-                        onChange={(e) => handleOptionChange('creativity', parseFloat(e.target.value))}
-                        className="w-full"
-                      />
-                      <div className="flex justify-between text-xs text-slate-500 mt-1">
-                        <span>保守 (0)</span>
-                        <span>创意 (1)</span>
-                      </div>
+              {/* 预期结果和操作按钮 */}
+              {originalImage ? (
+                <div className="space-y-4">
+                  <div className="bg-slate-50 rounded-xl p-4">
+                    <h4 className="font-medium text-slate-700 mb-2">尺寸变化</h4>
+                    <div className="text-sm text-slate-600">
+                      <p>原始: {originalImage.width} × {originalImage.height}</p>
+                      <p>放大后: {getExpectedDimensions().width} × {getExpectedDimensions().height}</p>
+                      <p className="mt-2 font-medium">放大倍数: {getUpscaleMultiplier()}x</p>
                     </div>
                   </div>
-                )}
-              </div>
+
+                  <button
+                    onClick={handleUpscale}
+                    disabled={isLoading}
+                    className="w-full bg-gradient-to-r from-purple-500 to-pink-500 text-white py-4 px-6 rounded-2xl font-medium hover:from-purple-600 hover:to-pink-600 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
+                  >
+                    {isLoading ? (
+                      <>
+                        <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                        <span>处理中...</span>
+                      </>
+                    ) : (
+                      <span>开始高清放大</span>
+                    )}
+                  </button>
+
+                  <div className="text-xs text-slate-500 text-center">
+                    💡 提示：放大过程可能需要1-2分钟，请耐心等待
+                  </div>
+                </div>
+              ) : (
+                <div className="text-center py-8">
+                  <div className="w-12 h-12 bg-slate-100 rounded-2xl flex items-center justify-center mx-auto mb-3">
+                    <svg className="w-6 h-6 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                  </div>
+                  <p className="text-slate-500 text-sm">请先上传图片</p>
+                </div>
+              )}
             </div>
           </div>
         </div>
 
-        {/* 右侧：预期结果和操作 */}
-        <div className="space-y-6">
+        {/* 错误信息 */}
+        {error && (
+          <div className="bg-red-50/80 backdrop-blur-sm border border-red-200/50 text-red-700 px-6 py-4 rounded-2xl">
+            <div className="flex items-start space-x-3">
+              <div className="flex-shrink-0">
+                <svg className="h-5 w-5 text-red-500 mt-0.5" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                </svg>
+              </div>
+              <div>
+                <h3 className="text-sm font-medium text-red-800">放大失败</h3>
+                <p className="mt-1 text-sm text-red-600">{error}</p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* 放大结果 */}
+        {upscaledImage && (
           <div className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-lg border border-white/20 p-8">
-            <h3 className="text-xl font-medium text-slate-800 mb-6">预期结果</h3>
-            
-            {originalImage ? (
-              <div className="space-y-4">
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="text-xl font-medium text-slate-800">放大结果对比</h3>
+              <button
+                onClick={downloadImage}
+                className="bg-gradient-to-r from-emerald-500 to-teal-500 text-white px-4 py-2 rounded-xl font-medium hover:from-emerald-600 hover:to-teal-600 transition-all duration-300 flex items-center space-x-2"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                <span>下载高清图</span>
+              </button>
+            </div>
+
+            <div className="space-y-6">
+              {/* Before-After Slider */}
+              <BeforeAfterSlider
+                beforeImage={originalImage.url}
+                afterImage={upscaledImage.url}
+                beforeLabel="原图"
+                afterLabel={`${upscaleType === 'conservative' ? '保守' : upscaleType === 'creative' ? '创意' : '快速'}放大`}
+                height="600px"
+                className="shadow-lg"
+                aspectRatio={`${originalImage.width}/${originalImage.height}`}
+              />
+
+              {/* 详细信息 */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                 <div className="bg-slate-50 rounded-xl p-4">
-                  <h4 className="font-medium text-slate-700 mb-2">尺寸变化</h4>
-                  <div className="text-sm text-slate-600">
-                    <p>原始: {originalImage.width} × {originalImage.height}</p>
-                    <p>放大后: {getExpectedDimensions().width} × {getExpectedDimensions().height}</p>
-                    <p className="mt-2 font-medium">放大倍数: {getUpscaleMultiplier()}x</p>
+                  <div className="font-medium text-slate-700 mb-2">原图信息</div>
+                  <div className="space-y-1 text-slate-600">
+                    <div>尺寸: {originalImage.width} × {originalImage.height}</div>
+                    <div>大小: {formatFileSize(originalImage.size)}</div>
                   </div>
                 </div>
-                
-                <button
-                  onClick={handleUpscale}
-                  disabled={isLoading}
-                  className="w-full bg-gradient-to-r from-purple-500 to-pink-500 text-white py-4 px-6 rounded-2xl font-medium hover:from-purple-600 hover:to-pink-600 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
-                >
-                  {isLoading ? (
-                    <>
-                      <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
-                      <span>处理中...</span>
-                    </>
-                  ) : (
-                    <span>开始高清放大</span>
-                  )}
-                </button>
-                
-                <div className="text-xs text-slate-500 text-center">
-                  💡 提示：放大过程可能需要1-2分钟，请耐心等待
+                <div className="bg-slate-50 rounded-xl p-4">
+                  <div className="font-medium text-slate-700 mb-2">放大后信息</div>
+                  <div className="space-y-1 text-slate-600">
+                    <div>尺寸: {upscaledImage.width} × {upscaledImage.height}</div>
+                    <div>大小: {formatFileSize(upscaledImage.size)}</div>
+                    <div className="text-emerald-600 font-medium">
+                      放大倍数: {getUpscaleMultiplier()}x
+                    </div>
+                  </div>
                 </div>
               </div>
-            ) : (
-              <div className="text-center py-12">
-                <div className="w-16 h-16 bg-slate-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                  <svg className="w-8 h-8 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                  </svg>
+
+              {/* 使用提示 */}
+              <div className="bg-indigo-50 rounded-xl p-4 border border-indigo-200">
+                <div className="flex items-start space-x-3">
+                  <div className="flex-shrink-0">
+                    <svg className="w-5 h-5 text-indigo-500 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-medium text-indigo-800">使用提示</h4>
+                    <p className="mt-1 text-sm text-indigo-700">
+                      拖动中间的滑块可以对比原图和放大后的效果。您也可以使用键盘左右箭头键进行精细调节。
+                    </p>
+                  </div>
                 </div>
-                <p className="text-slate-500">请先上传图片</p>
               </div>
-            )}
+            </div>
           </div>
-
-          {/* 错误信息 */}
-          {error && (
-            <div className="bg-red-50/80 backdrop-blur-sm border border-red-200/50 text-red-700 px-6 py-4 rounded-2xl">
-              <div className="flex items-start space-x-3">
-                <div className="flex-shrink-0">
-                  <svg className="h-5 w-5 text-red-500 mt-0.5" viewBox="0 0 20 20" fill="currentColor">
-                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-                  </svg>
-                </div>
-                <div>
-                  <h3 className="text-sm font-medium text-red-800">放大失败</h3>
-                  <p className="mt-1 text-sm text-red-600">{error}</p>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* 放大结果 */}
-          {upscaledImage && (
-            <div className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-lg border border-white/20 p-8">
-              <div className="flex justify-between items-center mb-6">
-                <h3 className="text-xl font-medium text-slate-800">放大结果对比</h3>
-                <button
-                  onClick={downloadImage}
-                  className="bg-gradient-to-r from-emerald-500 to-teal-500 text-white px-4 py-2 rounded-xl font-medium hover:from-emerald-600 hover:to-teal-600 transition-all duration-300 flex items-center space-x-2"
-                >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                  </svg>
-                  <span>下载高清图</span>
-                </button>
-              </div>
-
-              <div className="space-y-6">
-                {/* Before-After Slider */}
-                <BeforeAfterSlider
-                  beforeImage={originalImage.url}
-                  afterImage={upscaledImage.url}
-                  beforeLabel="原图"
-                  afterLabel={`${upscaleType === 'conservative' ? '保守' : upscaleType === 'creative' ? '创意' : '快速'}放大`}
-                  height="500px"
-                  className="shadow-lg"
-                  aspectRatio={`${originalImage.width}/${originalImage.height}`}
-                />
-
-                {/* 详细信息 */}
-                <div className="grid grid-cols-2 gap-4 text-sm">
-                  <div className="bg-slate-50 rounded-xl p-4">
-                    <div className="font-medium text-slate-700 mb-2">原图信息</div>
-                    <div className="space-y-1 text-slate-600">
-                      <div>尺寸: {originalImage.width} × {originalImage.height}</div>
-                      <div>大小: {formatFileSize(originalImage.size)}</div>
-                    </div>
-                  </div>
-                  <div className="bg-slate-50 rounded-xl p-4">
-                    <div className="font-medium text-slate-700 mb-2">放大后信息</div>
-                    <div className="space-y-1 text-slate-600">
-                      <div>尺寸: {upscaledImage.width} × {upscaledImage.height}</div>
-                      <div>大小: {formatFileSize(upscaledImage.size)}</div>
-                      <div className="text-emerald-600 font-medium">
-                        放大倍数: {getUpscaleMultiplier()}x
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* 使用提示 */}
-                <div className="bg-indigo-50 rounded-xl p-4 border border-indigo-200">
-                  <div className="flex items-start space-x-3">
-                    <div className="flex-shrink-0">
-                      <svg className="w-5 h-5 text-indigo-500 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      </svg>
-                    </div>
-                    <div>
-                      <h4 className="text-sm font-medium text-indigo-800">使用提示</h4>
-                      <p className="mt-1 text-sm text-indigo-700">
-                        拖动中间的滑块可以对比原图和放大后的效果。您也可以使用键盘左右箭头键进行精细调节。
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
+        )}
       </div>
     </div>
   );
