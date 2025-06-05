@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { expandImage } from '../services/api';
+import { expandImage, SERVER_BASE_URL } from '../services/api';
 
 function ImageExpander() {
   const [originalImage, setOriginalImage] = useState(null);
@@ -387,7 +387,7 @@ function ImageExpander() {
               <h4 className="text-sm font-medium text-slate-700 mb-3">扩展结果</h4>
               <div className="relative">
                 <img
-                  src={`http://localhost:3001${result.imageUrl}`}
+                  src={`${SERVER_BASE_URL}${result.imageUrl}`}
                   alt="扩展结果"
                   className="w-full border border-slate-200 rounded-xl"
                 />
@@ -400,7 +400,7 @@ function ImageExpander() {
 
           <div className="mt-6 flex space-x-4">
             <a
-              href={`http://localhost:3001${result.imageUrl}`}
+              href={`${SERVER_BASE_URL}${result.imageUrl}`}
               download="expanded-image.jpg"
               className="inline-flex items-center px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl transition-colors duration-200"
             >

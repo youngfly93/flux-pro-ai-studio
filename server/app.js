@@ -4,6 +4,7 @@ const path = require('path');
 require('dotenv').config({ path: path.join(__dirname, '../.env') });
 
 const imageRoutes = require('./routes/imageRoutes');
+const { scheduleCleanup } = require('./services/cleanupService');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -40,4 +41,5 @@ app.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);
   console.log(`📱 Client URL: ${process.env.CLIENT_URL}`);
   console.log(`🔑 API Key configured: ${process.env.BFL_API_KEY ? 'Yes' : 'No'}`);
+  scheduleCleanup();
 });
