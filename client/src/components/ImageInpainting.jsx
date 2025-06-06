@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { editImage } from '../services/api';
+import { editImage, SERVER_BASE_URL } from '../services/api';
 import ModelSelector from './ModelSelector';
 
 function ImageInpainting() {
@@ -446,7 +446,7 @@ function ImageInpainting() {
             <div>
               <h4 className="text-sm font-medium text-slate-700 mb-3">重绘结果</h4>
               <img
-                src={`http://localhost:3001${result.imageUrl}`}
+                src={`${SERVER_BASE_URL}${result.imageUrl}`}
                 alt="重绘结果"
                 className="w-full border border-slate-200 rounded-xl"
               />
@@ -455,7 +455,7 @@ function ImageInpainting() {
 
           <div className="mt-6 flex space-x-4">
             <a
-              href={`http://localhost:3001${result.imageUrl}`}
+              href={`${SERVER_BASE_URL}${result.imageUrl}`}
               download="inpainted-image.jpg"
               className="inline-flex items-center px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl transition-colors duration-200"
             >

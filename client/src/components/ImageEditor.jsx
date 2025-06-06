@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react';
-import { editImage } from '../services/api';
+import { editImage, SERVER_BASE_URL } from '../services/api';
 import ModelSelector from './ModelSelector';
 
 const ImageEditor = () => {
@@ -73,7 +73,7 @@ const ImageEditor = () => {
 
       if (result.success) {
         setEditedImage({
-          url: `http://localhost:3001${result.imageUrl}`,
+          url: `${SERVER_BASE_URL}${result.imageUrl}`,
           originalUrl: result.originalUrl
         });
         console.log('✅ 图片编辑成功');

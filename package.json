@@ -19,7 +19,7 @@
     "image-editing"
   ],
   "author": "youngfly93",
-  "license": "ISC",
+  "license": "MIT",
   "description": "Flux AI Image Generation and Editing Web Application",
   "dependencies": {
     "axios": "^1.9.0",
