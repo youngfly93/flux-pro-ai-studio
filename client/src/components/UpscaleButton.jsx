@@ -48,7 +48,7 @@ const UpscaleButton = ({
       // 准备放大选项
       const options = {
         prompt: '', // 高清放大通常不需要提示词
-        creativity: upscaleType === 'creative' ? 0.3 : 0.1,
+        creativity: upscaleType === 'creative' ? 0.35 : 0.2, // API 要求最小值为 0.2
         output_format: 'png'
       };
 
