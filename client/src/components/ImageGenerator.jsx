@@ -1,11 +1,13 @@
 import { useState } from 'react';
 import { generateImage, SERVER_BASE_URL } from '../services/api';
 import ModelSelector from './ModelSelector';
+import UpscaleButton from './UpscaleButton';
 
 const ImageGenerator = () => {
   const [prompt, setPrompt] = useState('');
   const [loading, setLoading] = useState(false);
   const [generatedImage, setGeneratedImage] = useState(null);
+  const [upscaledImage, setUpscaledImage] = useState(null);
   const [error, setError] = useState('');
   const [options, setOptions] = useState({
     aspect_ratio: '1:1',
@@ -64,14 +66,32 @@ const ImageGenerator = () => {
   };
 
   const handleDownload = () => {
-    if (generatedImage) {
+    const imageToDownload = upscaledImage || generatedImage;
+    if (imageToDownload) {
       const link = document.createElement('a');
-      link.href = generatedImage.url;
+      link.href = imageToDownload.url;
       link.download = `flux-generated-${Date.now()}.jpg`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
     }
+  };
+
+  const handleUpscaleComplete = (result) => {
+    if (result.success) {
+      setUpscaledImage({
+        url: result.upscaledUrl,
+        originalUrl: result.originalUrl,
+        upscaleType: result.upscaleType
+      });
+      setError('');
+    } else {
+      setError(result.error || '高清放大失败');
+    }
+  };
+
+  const handleUpscaleStart = () => {
+    setError('');
   };
 
   return (
@@ -235,34 +255,59 @@ const ImageGenerator = () => {
         {generatedImage && (
           <div className="mt-8">
             <div className="flex justify-between items-center mb-6">
-              <h3 className="text-lg font-medium text-slate-800">生成结果</h3>
-              <button
-                onClick={handleDownload}
-                className="px-6 py-2 bg-white/80 border border-slate-200/50 text-slate-700 font-medium rounded-xl hover:bg-white hover:border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 transition-all duration-200"
-              >
-                <div className="flex items-center space-x-2">
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                  </svg>
-                  <span>下载</span>
-                </div>
-              </button>
+              <h3 className="text-lg font-medium text-slate-800">
+                {upscaledImage ? '高清放大结果' : '生成结果'}
+              </h3>
+              <div className="flex items-center space-x-3">
+                {generatedImage && !upscaledImage && (
+                  <UpscaleButton
+                    imageUrl={generatedImage.url}
+                    onUpscaleComplete={handleUpscaleComplete}
+                    onUpscaleStart={handleUpscaleStart}
+                    buttonText="高清放大"
+                    size="normal"
+                  />
+                )}
+                <button
+                  onClick={handleDownload}
+                  className="px-6 py-2 bg-white/80 border border-slate-200/50 text-slate-700 font-medium rounded-xl hover:bg-white hover:border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 transition-all duration-200"
+                >
+                  <div className="flex items-center space-x-2">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                    <span>下载{upscaledImage ? '高清图' : '原图'}</span>
+                  </div>
+                </button>
+              </div>
             </div>
-            <div className="bg-white/50 border border-slate-200/50 rounded-3xl overflow-hidden shadow-lg">
+            <div className="relative bg-white/50 border border-slate-200/50 rounded-3xl overflow-hidden shadow-lg">
               <img
-                src={generatedImage.url}
-                alt="Generated"
+                src={upscaledImage ? upscaledImage.url : generatedImage.url}
+                alt={upscaledImage ? "Upscaled Generated Image" : "Generated Image"}
                 className="w-full h-auto"
                 onError={(e) => {
                   console.error('图片加载失败');
                   setError('图片加载失败');
                 }}
               />
+              {upscaledImage && (
+                <div className="absolute top-2 right-2 bg-purple-500 text-white px-2 py-1 rounded-lg text-xs font-medium">
+                  高清放大
+                </div>
+              )}
             </div>
             <div className="mt-4 p-4 bg-slate-50/50 rounded-2xl">
-              <p className="text-sm text-slate-600 font-light">
-                <span className="font-medium">提示词:</span> {prompt}
-              </p>
+              <div className="space-y-2">
+                <p className="text-sm text-slate-600 font-light">
+                  <span className="font-medium">提示词:</span> {prompt}
+                </p>
+                {upscaledImage && (
+                  <p className="text-sm text-slate-600 font-light">
+                    <span className="font-medium">高清放大:</span> {upscaledImage.upscaleType === 'conservative' ? '保守模式 (4x)' : upscaledImage.upscaleType === 'creative' ? '创意模式 (4x)' : '快速模式 (2x)'}
+                  </p>
+                )}
+              </div>
             </div>
           </div>
         )}

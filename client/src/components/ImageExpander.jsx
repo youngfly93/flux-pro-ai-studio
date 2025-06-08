@@ -1,6 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { expandImage, SERVER_BASE_URL } from '../services/api';
 import BeforeAfterSlider from './BeforeAfterSlider';
+import UpscaleButton from './UpscaleButton';
 
 // 错误边界组件
 class ErrorBoundary extends React.Component {
@@ -51,6 +52,7 @@ function ImageExpander() {
   const [prompt, setPrompt] = useState('');
   const [isExpanding, setIsExpanding] = useState(false);
   const [result, setResult] = useState(null);
+  const [upscaledImage, setUpscaledImage] = useState(null);
   const [error, setError] = useState('');
   const [expansionSettings, setExpansionSettings] = useState({
     top: 0,
@@ -182,6 +184,23 @@ function ImageExpander() {
     } finally {
       setIsExpanding(false);
     }
+  };
+
+  const handleUpscaleComplete = (result) => {
+    if (result.success) {
+      setUpscaledImage({
+        url: result.upscaledUrl,
+        originalUrl: result.originalUrl,
+        upscaleType: result.upscaleType
+      });
+      setError('');
+    } else {
+      setError(result.error || '高清放大失败');
+    }
+  };
+
+  const handleUpscaleStart = () => {
+    setError('');
   };
 
   const newDimensions = getNewDimensions();
@@ -426,26 +445,39 @@ function ImageExpander() {
       {result && (
         <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-white/20 p-8">
           <div className="flex justify-between items-center mb-6">
-            <h3 className="text-xl font-light text-slate-800">扩展结果对比</h3>
-            <a
-              href={`${SERVER_BASE_URL}${result.imageUrl}`}
-              download="expanded-image.jpg"
-              className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-emerald-500 to-teal-500 text-white rounded-xl hover:from-emerald-600 hover:to-teal-600 transition-all duration-200"
-            >
-              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-              </svg>
-              下载扩展图
-            </a>
+            <h3 className="text-xl font-light text-slate-800">
+              {upscaledImage ? '高清放大结果对比' : '扩展结果对比'}
+            </h3>
+            <div className="flex items-center space-x-3">
+              {result && !upscaledImage && (
+                <UpscaleButton
+                  imageUrl={`${SERVER_BASE_URL}${result.imageUrl}`}
+                  onUpscaleComplete={handleUpscaleComplete}
+                  onUpscaleStart={handleUpscaleStart}
+                  buttonText="高清放大"
+                  size="normal"
+                />
+              )}
+              <a
+                href={upscaledImage ? upscaledImage.url : `${SERVER_BASE_URL}${result.imageUrl}`}
+                download="expanded-image.jpg"
+                className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-emerald-500 to-teal-500 text-white rounded-xl hover:from-emerald-600 hover:to-teal-600 transition-all duration-200"
+              >
+                <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                下载{upscaledImage ? '高清图' : '扩展图'}
+              </a>
+            </div>
           </div>
 
           <div className="space-y-6">
             {/* Before-After Slider */}
             <BeforeAfterSlider
               beforeImage={originalImage?.src}
-              afterImage={`${SERVER_BASE_URL}${result.imageUrl}`}
+              afterImage={upscaledImage ? upscaledImage.url : `${SERVER_BASE_URL}${result.imageUrl}`}
               beforeLabel="原图"
-              afterLabel="AI 扩展"
+              afterLabel={upscaledImage ? "AI 扩展 + 高清放大" : "AI 扩展"}
               height="600px"
               className="shadow-lg"
             />
@@ -473,16 +505,33 @@ function ImageExpander() {
 
             {/* 扩展提示词 */}
             <div className="bg-slate-50/50 rounded-2xl p-4">
-              <div className="flex items-start space-x-3">
-                <div className="flex-shrink-0">
-                  <svg className="w-5 h-5 text-indigo-500 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8V4a2 2 0 012-2h4M4 16v4a2 2 0 002 2h4m8-16V4a2 2 0 00-2-2h-4m8 12v4a2 2 0 01-2 2h-4" />
-                  </svg>
+              <div className="space-y-3">
+                <div className="flex items-start space-x-3">
+                  <div className="flex-shrink-0">
+                    <svg className="w-5 h-5 text-indigo-500 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8V4a2 2 0 012-2h4M4 16v4a2 2 0 002 2h4m8-16V4a2 2 0 00-2-2h-4m8 12v4a2 2 0 01-2 2h-4" />
+                    </svg>
+                  </div>
+                  <div className="flex-1">
+                    <h4 className="text-sm font-medium text-slate-700 mb-1">扩展提示词</h4>
+                    <p className="text-sm text-slate-600 font-light">{prompt}</p>
+                  </div>
                 </div>
-                <div className="flex-1">
-                  <h4 className="text-sm font-medium text-slate-700 mb-1">扩展提示词</h4>
-                  <p className="text-sm text-slate-600 font-light">{prompt}</p>
-                </div>
+                {upscaledImage && (
+                  <div className="flex items-start space-x-3">
+                    <div className="flex-shrink-0">
+                      <svg className="w-5 h-5 text-purple-500 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7" />
+                      </svg>
+                    </div>
+                    <div className="flex-1">
+                      <h4 className="text-sm font-medium text-slate-700 mb-1">高清放大</h4>
+                      <p className="text-sm text-slate-600 font-light">
+                        {upscaledImage.upscaleType === 'conservative' ? '保守模式 (4x)' : upscaledImage.upscaleType === 'creative' ? '创意模式 (4x)' : '快速模式 (2x)'}
+                      </p>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
 

@@ -2,6 +2,7 @@ import { useState, useRef } from 'react';
 import { editImage, SERVER_BASE_URL } from '../services/api';
 import ModelSelector from './ModelSelector';
 import BeforeAfterSlider from './BeforeAfterSlider';
+import UpscaleButton from './UpscaleButton';
 
 const ImageEditor = () => {
   const [selectedFile, setSelectedFile] = useState(null);
@@ -9,6 +10,7 @@ const ImageEditor = () => {
   const [prompt, setPrompt] = useState('');
   const [loading, setLoading] = useState(false);
   const [editedImage, setEditedImage] = useState(null);
+  const [upscaledImage, setUpscaledImage] = useState(null);
   const [error, setError] = useState('');
   const [options, setOptions] = useState({
     seed: '',
@@ -90,9 +92,10 @@ const ImageEditor = () => {
   };
 
   const handleDownload = () => {
-    if (editedImage) {
+    const imageToDownload = upscaledImage || editedImage;
+    if (imageToDownload) {
       const link = document.createElement('a');
-      link.href = editedImage.url;
+      link.href = imageToDownload.url;
       link.download = `flux-edited-${Date.now()}.jpg`;
       document.body.appendChild(link);
       link.click();
@@ -100,10 +103,28 @@ const ImageEditor = () => {
     }
   };
 
+  const handleUpscaleComplete = (result) => {
+    if (result.success) {
+      setUpscaledImage({
+        url: result.upscaledUrl,
+        originalUrl: result.originalUrl,
+        upscaleType: result.upscaleType
+      });
+      setError('');
+    } else {
+      setError(result.error || '高清放大失败');
+    }
+  };
+
+  const handleUpscaleStart = () => {
+    setError('');
+  };
+
   const clearSelection = () => {
     setSelectedFile(null);
     setPreviewUrl('');
     setEditedImage(null);
+    setUpscaledImage(null);
     setError('');
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
@@ -329,41 +350,71 @@ const ImageEditor = () => {
         {editedImage && (
           <div className="mt-8">
             <div className="flex justify-between items-center mb-6">
-              <h3 className="text-lg font-medium text-slate-800">编辑结果对比</h3>
-              <button
-                onClick={handleDownload}
-                className="px-6 py-2 bg-gradient-to-r from-emerald-500 to-teal-500 text-white font-medium rounded-xl hover:from-emerald-600 hover:to-teal-600 transition-all duration-200 flex items-center space-x-2"
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                </svg>
-                <span>下载编辑图</span>
-              </button>
+              <h3 className="text-lg font-medium text-slate-800">
+                {upscaledImage ? '高清放大结果对比' : '编辑结果对比'}
+              </h3>
+              <div className="flex items-center space-x-3">
+                {editedImage && !upscaledImage && (
+                  <UpscaleButton
+                    imageUrl={editedImage.url}
+                    onUpscaleComplete={handleUpscaleComplete}
+                    onUpscaleStart={handleUpscaleStart}
+                    buttonText="高清放大"
+                    size="normal"
+                  />
+                )}
+                <button
+                  onClick={handleDownload}
+                  className="px-6 py-2 bg-gradient-to-r from-emerald-500 to-teal-500 text-white font-medium rounded-xl hover:from-emerald-600 hover:to-teal-600 transition-all duration-200 flex items-center space-x-2"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                  <span>下载{upscaledImage ? '高清图' : '编辑图'}</span>
+                </button>
+              </div>
             </div>
 
             <div className="space-y-6">
               {/* Before-After Slider */}
               <BeforeAfterSlider
                 beforeImage={previewUrl}
-                afterImage={editedImage.url}
+                afterImage={upscaledImage ? upscaledImage.url : editedImage.url}
                 beforeLabel="原图"
-                afterLabel="AI 编辑"
+                afterLabel={upscaledImage ? "AI 编辑 + 高清放大" : "AI 编辑"}
                 height="600px"
                 className="shadow-lg"
               />
 
               {/* 编辑信息 */}
               <div className="bg-slate-50/50 rounded-2xl p-4">
-                <div className="flex items-start space-x-3">
-                  <div className="flex-shrink-0">
-                    <svg className="w-5 h-5 text-indigo-500 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                    </svg>
+                <div className="space-y-3">
+                  <div className="flex items-start space-x-3">
+                    <div className="flex-shrink-0">
+                      <svg className="w-5 h-5 text-indigo-500 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                      </svg>
+                    </div>
+                    <div className="flex-1">
+                      <h4 className="text-sm font-medium text-slate-700 mb-1">编辑提示词</h4>
+                      <p className="text-sm text-slate-600 font-light">{prompt}</p>
+                    </div>
                   </div>
-                  <div className="flex-1">
-                    <h4 className="text-sm font-medium text-slate-700 mb-1">编辑提示词</h4>
-                    <p className="text-sm text-slate-600 font-light">{prompt}</p>
-                  </div>
+                  {upscaledImage && (
+                    <div className="flex items-start space-x-3">
+                      <div className="flex-shrink-0">
+                        <svg className="w-5 h-5 text-purple-500 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7" />
+                        </svg>
+                      </div>
+                      <div className="flex-1">
+                        <h4 className="text-sm font-medium text-slate-700 mb-1">高清放大</h4>
+                        <p className="text-sm text-slate-600 font-light">
+                          {upscaledImage.upscaleType === 'conservative' ? '保守模式 (4x)' : upscaledImage.upscaleType === 'creative' ? '创意模式 (4x)' : '快速模式 (2x)'}
+                        </p>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
 

@@ -2,12 +2,14 @@ import { useState, useRef, useEffect } from 'react';
 import { editImage, SERVER_BASE_URL } from '../services/api';
 import ModelSelector from './ModelSelector';
 import BeforeAfterSlider from './BeforeAfterSlider';
+import UpscaleButton from './UpscaleButton';
 
 function ImageInpainting() {
   const [originalImage, setOriginalImage] = useState(null);
   const [prompt, setPrompt] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
   const [result, setResult] = useState(null);
+  const [upscaledImage, setUpscaledImage] = useState(null);
   const [error, setError] = useState('');
   const [brushSize, setBrushSize] = useState(20);
   const [isDrawing, setIsDrawing] = useState(false);
@@ -268,6 +270,23 @@ function ImageInpainting() {
     }
   };
 
+  const handleUpscaleComplete = (result) => {
+    if (result.success) {
+      setUpscaledImage({
+        url: result.upscaledUrl,
+        originalUrl: result.originalUrl,
+        upscaleType: result.upscaleType
+      });
+      setError('');
+    } else {
+      setError(result.error || '高清放大失败');
+    }
+  };
+
+  const handleUpscaleStart = () => {
+    setError('');
+  };
+
   return (
     <div className="space-y-8">
       {/* 上传区域 */}
@@ -422,42 +441,72 @@ function ImageInpainting() {
       {result && (
         <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-white/20 p-8">
           <div className="flex justify-between items-center mb-6">
-            <h3 className="text-xl font-light text-slate-800">重绘结果对比</h3>
-            <a
-              href={`${SERVER_BASE_URL}${result.imageUrl}`}
-              download="inpainted-image.jpg"
-              className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-emerald-500 to-teal-500 text-white rounded-xl hover:from-emerald-600 hover:to-teal-600 transition-all duration-200"
-            >
-              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-              </svg>
-              下载重绘图
-            </a>
+            <h3 className="text-xl font-light text-slate-800">
+              {upscaledImage ? '高清放大结果对比' : '重绘结果对比'}
+            </h3>
+            <div className="flex items-center space-x-3">
+              {result && !upscaledImage && (
+                <UpscaleButton
+                  imageUrl={`${SERVER_BASE_URL}${result.imageUrl}`}
+                  onUpscaleComplete={handleUpscaleComplete}
+                  onUpscaleStart={handleUpscaleStart}
+                  buttonText="高清放大"
+                  size="normal"
+                />
+              )}
+              <a
+                href={upscaledImage ? upscaledImage.url : `${SERVER_BASE_URL}${result.imageUrl}`}
+                download="inpainted-image.jpg"
+                className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-emerald-500 to-teal-500 text-white rounded-xl hover:from-emerald-600 hover:to-teal-600 transition-all duration-200"
+              >
+                <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                下载{upscaledImage ? '高清图' : '重绘图'}
+              </a>
+            </div>
           </div>
 
           <div className="space-y-6">
             {/* Before-After Slider */}
             <BeforeAfterSlider
               beforeImage={originalImage?.src}
-              afterImage={`${SERVER_BASE_URL}${result.imageUrl}`}
+              afterImage={upscaledImage ? upscaledImage.url : `${SERVER_BASE_URL}${result.imageUrl}`}
               beforeLabel="原图"
-              afterLabel="AI 重绘"
+              afterLabel={upscaledImage ? "AI 重绘 + 高清放大" : "AI 重绘"}
               height="600px"
               className="shadow-lg"
             />
 
             {/* 重绘信息 */}
             <div className="bg-slate-50/50 rounded-2xl p-4">
-              <div className="flex items-start space-x-3">
-                <div className="flex-shrink-0">
-                  <svg className="w-5 h-5 text-indigo-500 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 4V2a1 1 0 011-1h4a1 1 0 011 1v2h4a1 1 0 011 1v1a1 1 0 01-1 1v9a2 2 0 01-2 2H7a2 2 0 01-2-2V7a1 1 0 01-1-1V5a1 1 0 011-1h4z" />
-                  </svg>
+              <div className="space-y-3">
+                <div className="flex items-start space-x-3">
+                  <div className="flex-shrink-0">
+                    <svg className="w-5 h-5 text-indigo-500 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 4V2a1 1 0 011-1h4a1 1 0 011 1v2h4a1 1 0 011 1v1a1 1 0 01-1 1v9a2 2 0 01-2 2H7a2 2 0 01-2-2V7a1 1 0 01-1-1V5a1 1 0 011-1h4z" />
+                    </svg>
+                  </div>
+                  <div className="flex-1">
+                    <h4 className="text-sm font-medium text-slate-700 mb-1">重绘提示词</h4>
+                    <p className="text-sm text-slate-600 font-light">{prompt}</p>
+                  </div>
                 </div>
-                <div className="flex-1">
-                  <h4 className="text-sm font-medium text-slate-700 mb-1">重绘提示词</h4>
-                  <p className="text-sm text-slate-600 font-light">{prompt}</p>
-                </div>
+                {upscaledImage && (
+                  <div className="flex items-start space-x-3">
+                    <div className="flex-shrink-0">
+                      <svg className="w-5 h-5 text-purple-500 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7" />
+                      </svg>
+                    </div>
+                    <div className="flex-1">
+                      <h4 className="text-sm font-medium text-slate-700 mb-1">高清放大</h4>
+                      <p className="text-sm text-slate-600 font-light">
+                        {upscaledImage.upscaleType === 'conservative' ? '保守模式 (4x)' : upscaledImage.upscaleType === 'creative' ? '创意模式 (4x)' : '快速模式 (2x)'}
+                      </p>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
 
