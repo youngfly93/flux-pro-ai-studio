@@ -327,6 +327,80 @@ router.post('/upscale', upload.single('image'), async (req, res) => {
   }
 });
 
+// Multi-image fusion endpoint
+router.post('/fuse', upload.single('image'), async (req, res) => {
+  try {
+    console.log('🎭 Multi-image fusion request received');
+
+    if (!req.file) {
+      return res.status(400).json({ error: 'No stitched image file provided' });
+    }
+
+    const { prompt } = req.body;
+    let options = {};
+
+    try {
+      options = req.body.options ? JSON.parse(req.body.options) : {};
+    } catch (e) {
+      console.warn('Failed to parse options:', e);
+    }
+
+    if (!prompt) {
+      return res.status(400).json({ error: 'Prompt is required' });
+    }
+
+    console.log('📋 Fusion request details:', {
+      prompt,
+      options,
+      fileSize: req.file.size,
+      fileName: req.file.filename
+    });
+
+    // Convert uploaded image to base64
+    const imageBuffer = fs.readFileSync(req.file.path);
+    const imageBase64 = fluxService.imageToBase64(imageBuffer);
+
+    // Use editImage method for fusion (since it's essentially image-to-image editing)
+    const request = await fluxService.editImage(prompt, imageBase64, options);
+    console.log('🎯 Fusion request created:', request.id);
+
+    // Poll for result
+    const result = await fluxService.pollForResult(request);
+
+    if (result.status === 'Ready' && result.result?.sample) {
+      // Download the fused image
+      const fusedImageBuffer = await fluxService.downloadImage(result.result.sample);
+
+      // Save to uploads directory
+      const filename = `fused-${Date.now()}.jpg`;
+      const filepath = path.join(__dirname, '../uploads', filename);
+      fs.writeFileSync(filepath, fusedImageBuffer);
+
+      // Clean up uploaded file
+      fs.unlinkSync(req.file.path);
+
+      res.json({
+        success: true,
+        imageUrl: `/uploads/${filename}`,
+        originalUrl: result.result.sample,
+        requestId: request.id
+      });
+    } else {
+      // Clean up uploaded file on failure
+      fs.unlinkSync(req.file.path);
+      res.status(500).json({ error: 'Image fusion failed', status: result.status });
+    }
+
+  } catch (error) {
+    console.error('Fusion error:', error);
+    // Clean up uploaded file on error
+    if (req.file && fs.existsSync(req.file.path)) {
+      fs.unlinkSync(req.file.path);
+    }
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // Get request status
 router.get('/status/:requestId', async (req, res) => {
   try {

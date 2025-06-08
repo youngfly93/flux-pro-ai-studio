@@ -114,6 +114,35 @@ export const upscaleImage = async (imageFile, upscaleType = 'conservative', opti
   }
 };
 
+// Multi-image fusion API
+export const fuseImages = async (stitchedImageFile, prompt, options = {}) => {
+  try {
+    const formData = new FormData();
+    formData.append('image', stitchedImageFile);
+    formData.append('prompt', prompt);
+    formData.append('options', JSON.stringify(options));
+
+    const response = await api.post('/images/fuse', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+      timeout: 300000, // 5 minutes timeout for fusion
+    });
+
+    if (response.data.error) {
+      throw new Error(response.data.error);
+    }
+
+    return response.data;
+  } catch (error) {
+    console.error('Fusion API error:', error);
+    if (error.response?.data?.error) {
+      throw new Error(`Failed to fuse images: ${error.response.data.error}`);
+    }
+    throw new Error(`Failed to fuse images: ${error.message}`);
+  }
+};
+
 export const healthCheck = async () => {
   try {
     const response = await api.get('/health');
