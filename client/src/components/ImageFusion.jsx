@@ -41,16 +41,6 @@ const ImageFusion = () => {
 
   const handleFileSelect = (event) => {
     const files = Array.from(event.target.files);
-    
-    if (files.length < 2) {
-      setError('请至少选择 2 张图片');
-      return;
-    }
-    
-    if (files.length > 4) {
-      setError('最多支持 4 张图片');
-      return;
-    }
 
     // 验证文件类型
     const validFiles = files.filter(file => file.type.startsWith('image/'));
@@ -59,15 +49,49 @@ const ImageFusion = () => {
       return;
     }
 
-    setSelectedFiles(validFiles);
+    // 检查是否会超过最大数量
+    const totalFiles = selectedFiles.length + validFiles.length;
+    if (totalFiles > 4) {
+      setError(`最多支持 4 张图片，当前已有 ${selectedFiles.length} 张，最多还能添加 ${4 - selectedFiles.length} 张`);
+      return;
+    }
+
+    // 添加到现有文件列表
+    const newFiles = [...selectedFiles, ...validFiles];
+    setSelectedFiles(newFiles);
     setError('');
 
-    // 生成预览 URL
-    const urls = validFiles.map(file => URL.createObjectURL(file));
-    setPreviewUrls(urls);
+    // 生成新的预览 URL（保留现有的，添加新的）
+    const newUrls = validFiles.map(file => URL.createObjectURL(file));
+    const allUrls = [...previewUrls, ...newUrls];
+    setPreviewUrls(allUrls);
 
     // 自动生成拼接预览
-    generateStitchedPreview(validFiles, urls);
+    generateStitchedPreview(newFiles, allUrls);
+
+    // 清空文件输入，允许重复选择
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
+  const removeImage = (index) => {
+    const newFiles = selectedFiles.filter((_, i) => i !== index);
+    const newUrls = previewUrls.filter((_, i) => i !== index);
+
+    // 释放被移除图片的 URL
+    URL.revokeObjectURL(previewUrls[index]);
+
+    setSelectedFiles(newFiles);
+    setPreviewUrls(newUrls);
+    setError('');
+
+    // 如果还有图片，重新生成拼接预览
+    if (newFiles.length > 0) {
+      generateStitchedPreview(newFiles, newUrls);
+    } else {
+      setStitchedPreview(null);
+    }
   };
 
   const generateStitchedPreview = async (files, urls) => {
@@ -254,6 +278,9 @@ const ImageFusion = () => {
   };
 
   const clearSelection = () => {
+    // 释放所有预览 URL 资源
+    previewUrls.forEach(url => URL.revokeObjectURL(url));
+
     setSelectedFiles([]);
     setPreviewUrls([]);
     setFusedImage(null);
@@ -277,20 +304,38 @@ const ImageFusion = () => {
 
       {/* 图片上传区域 */}
       <div className="bg-white/70 backdrop-blur-sm border border-slate-200/50 rounded-3xl p-8">
-        <h3 className="text-lg font-medium text-slate-800 mb-6">📸 选择图片 (2-4张)</h3>
-        
+        <div className="flex justify-between items-center mb-6">
+          <h3 className="text-lg font-medium text-slate-800">📸 选择图片 (2-4张)</h3>
+          {selectedFiles.length > 0 && (
+            <span className="text-sm text-slate-600 bg-slate-100 px-3 py-1 rounded-full">
+              已选择 {selectedFiles.length}/4 张
+            </span>
+          )}
+        </div>
+
         <div className="space-y-6">
           {/* 文件选择 */}
           <div className="flex items-center justify-center w-full">
-            <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-slate-300 border-dashed rounded-2xl cursor-pointer bg-slate-50/50 hover:bg-slate-100/50 transition-colors">
+            <label className={`flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-2xl cursor-pointer transition-colors ${
+              selectedFiles.length >= 4
+                ? 'border-slate-200 bg-slate-50/30 cursor-not-allowed'
+                : 'border-slate-300 bg-slate-50/50 hover:bg-slate-100/50'
+            }`}>
               <div className="flex flex-col items-center justify-center pt-5 pb-6">
                 <svg className="w-8 h-8 mb-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
                 </svg>
                 <p className="mb-2 text-sm text-slate-500">
-                  <span className="font-semibold">点击上传</span> 或拖拽图片到此处
+                  <span className="font-semibold">
+                    {selectedFiles.length === 0 ? '点击上传' : '继续添加'}
+                  </span> 或拖拽图片到此处
                 </p>
-                <p className="text-xs text-slate-500">支持 PNG, JPG, WEBP (最多4张)</p>
+                <p className="text-xs text-slate-500">
+                  {selectedFiles.length >= 4
+                    ? '已达到最大数量 (4张)'
+                    : `支持 PNG, JPG, WEBP (还可添加 ${4 - selectedFiles.length} 张)`
+                  }
+                </p>
               </div>
               <input
                 ref={fileInputRef}
@@ -298,6 +343,7 @@ const ImageFusion = () => {
                 multiple
                 accept="image/*"
                 onChange={handleFileSelect}
+                disabled={selectedFiles.length >= 4}
                 className="hidden"
               />
             </label>
@@ -349,11 +395,39 @@ const ImageFusion = () => {
                       className="w-full h-24 object-cover rounded-xl border border-slate-200"
                     />
                     <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors rounded-xl" />
+
+                    {/* 图片序号 */}
                     <div className="absolute top-2 right-2 bg-white/90 text-slate-700 text-xs px-2 py-1 rounded-lg">
                       {index + 1}
                     </div>
+
+                    {/* 删除按钮 */}
+                    <button
+                      onClick={() => removeImage(index)}
+                      className="absolute top-2 left-2 bg-red-500 hover:bg-red-600 text-white rounded-full w-6 h-6 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                      title="删除这张图片"
+                    >
+                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
                   </div>
                 ))}
+
+                {/* 添加更多图片的占位符 */}
+                {selectedFiles.length < 4 && (
+                  <div
+                    onClick={() => fileInputRef.current?.click()}
+                    className="w-full h-24 border-2 border-dashed border-slate-300 rounded-xl flex items-center justify-center cursor-pointer hover:border-slate-400 hover:bg-slate-50/50 transition-colors"
+                  >
+                    <div className="text-center">
+                      <svg className="w-6 h-6 text-slate-400 mx-auto mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                      </svg>
+                      <p className="text-xs text-slate-500">添加图片</p>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -374,8 +448,27 @@ const ImageFusion = () => {
         </div>
       )}
 
+      {/* 提示信息 - 当只有1张图片时 */}
+      {selectedFiles.length === 1 && (
+        <div className="bg-blue-50/80 backdrop-blur-sm border border-blue-200/50 text-blue-700 px-6 py-4 rounded-2xl">
+          <div className="flex items-start space-x-3">
+            <div className="flex-shrink-0">
+              <svg className="h-5 w-5 text-blue-500 mt-0.5" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+              </svg>
+            </div>
+            <div>
+              <h3 className="text-sm font-medium text-blue-800">需要更多图片</h3>
+              <p className="mt-1 text-sm text-blue-600">
+                请再添加至少 1 张图片才能开始融合。您可以点击上方的"继续添加"或"添加图片"按钮。
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* 融合设置 */}
-      {selectedFiles.length > 0 && (
+      {selectedFiles.length >= 2 && (
         <div className="bg-white/70 backdrop-blur-sm border border-slate-200/50 rounded-3xl p-8">
           <h3 className="text-lg font-medium text-slate-800 mb-6">🎨 融合设置</h3>
 
