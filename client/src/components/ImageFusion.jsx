@@ -67,7 +67,7 @@ const ImageFusion = () => {
     setPreviewUrls(allUrls);
 
     // 自动生成拼接预览
-    generateStitchedPreview(newFiles, allUrls);
+    generateStitchedPreview(newFiles, allUrls, layoutMode);
 
     // 清空文件输入，允许重复选择
     if (fileInputRef.current) {
@@ -88,20 +88,20 @@ const ImageFusion = () => {
 
     // 如果还有图片，重新生成拼接预览
     if (newFiles.length > 0) {
-      generateStitchedPreview(newFiles, newUrls);
+      generateStitchedPreview(newFiles, newUrls, layoutMode);
     } else {
       setStitchedPreview(null);
     }
   };
 
-  const generateStitchedPreview = async (files, urls) => {
+  const generateStitchedPreview = async (files, urls, layout = layoutMode) => {
     if (files.length < 2) return;
 
     const canvas = canvasRef.current;
     if (!canvas) return;
 
     const ctx = canvas.getContext('2d');
-    
+
     // 加载所有图片
     const images = await Promise.all(
       urls.map(url => {
@@ -117,7 +117,7 @@ const ImageFusion = () => {
     let canvasWidth, canvasHeight;
     const maxSize = 512; // 预览最大尺寸
 
-    if (layoutMode === 'horizontal') {
+    if (layout === 'horizontal') {
       // 水平拼接：所有图片等高，宽度相加
       const targetHeight = Math.min(maxSize, Math.max(...images.map(img => img.height)));
       canvasHeight = targetHeight;
@@ -125,7 +125,7 @@ const ImageFusion = () => {
         const scaledWidth = (img.width * targetHeight) / img.height;
         return total + scaledWidth;
       }, 0);
-    } else if (layoutMode === 'vertical') {
+    } else if (layout === 'vertical') {
       // 垂直拼接：所有图片等宽，高度相加
       const targetWidth = Math.min(maxSize, Math.max(...images.map(img => img.width)));
       canvasWidth = targetWidth;
@@ -157,13 +157,13 @@ const ImageFusion = () => {
     images.forEach((img, index) => {
       let drawX, drawY, drawWidth, drawHeight;
 
-      if (layoutMode === 'horizontal') {
+      if (layout === 'horizontal') {
         drawHeight = canvasHeight;
         drawWidth = (img.width * drawHeight) / img.height;
         drawX = currentX;
         drawY = 0;
         currentX += drawWidth;
-      } else if (layoutMode === 'vertical') {
+      } else if (layout === 'vertical') {
         drawWidth = canvasWidth;
         drawHeight = (img.height * drawWidth) / img.width;
         drawX = 0;
@@ -174,10 +174,10 @@ const ImageFusion = () => {
         const cols = Math.ceil(Math.sqrt(images.length));
         const cellWidth = canvasWidth / cols;
         const cellHeight = canvasHeight / Math.ceil(images.length / cols);
-        
+
         const col = index % cols;
         const row = Math.floor(index / cols);
-        
+
         drawX = col * cellWidth;
         drawY = row * cellHeight;
         drawWidth = cellWidth;
@@ -195,7 +195,7 @@ const ImageFusion = () => {
   const handleLayoutChange = (newLayout) => {
     setLayoutMode(newLayout);
     if (selectedFiles.length > 0) {
-      generateStitchedPreview(selectedFiles, previewUrls);
+      generateStitchedPreview(selectedFiles, previewUrls, newLayout);
     }
   };
 
