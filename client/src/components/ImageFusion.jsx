@@ -14,6 +14,7 @@ const ImageFusion = () => {
   const [error, setError] = useState('');
   const [stitchedPreview, setStitchedPreview] = useState(null);
   const [layoutMode, setLayoutMode] = useState('horizontal'); // horizontal, vertical, grid
+  const [borderWidth, setBorderWidth] = useState(20); // 图片间边界宽度
   const fileInputRef = useRef(null);
   const canvasRef = useRef(null);
   
@@ -116,38 +117,39 @@ const ImageFusion = () => {
     // 计算画布尺寸和布局
     let canvasWidth, canvasHeight;
     const maxSize = 512; // 预览最大尺寸
+    const currentBorderWidth = borderWidth; // 使用状态中的边界宽度
 
     if (layout === 'horizontal') {
-      // 水平拼接：所有图片等高，宽度相加
+      // 水平拼接：所有图片等高，宽度相加，加上边界
       const targetHeight = Math.min(maxSize, Math.max(...images.map(img => img.height)));
       canvasHeight = targetHeight;
       canvasWidth = images.reduce((total, img) => {
         const scaledWidth = (img.width * targetHeight) / img.height;
         return total + scaledWidth;
-      }, 0);
+      }, 0) + (images.length - 1) * currentBorderWidth; // 添加边界宽度
     } else if (layout === 'vertical') {
-      // 垂直拼接：所有图片等宽，高度相加
+      // 垂直拼接：所有图片等宽，高度相加，加上边界
       const targetWidth = Math.min(maxSize, Math.max(...images.map(img => img.width)));
       canvasWidth = targetWidth;
       canvasHeight = images.reduce((total, img) => {
         const scaledHeight = (img.height * targetWidth) / img.width;
         return total + scaledHeight;
-      }, 0);
+      }, 0) + (images.length - 1) * currentBorderWidth; // 添加边界高度
     } else {
-      // 网格拼接：2x2 或 2x1 布局
+      // 网格拼接：2x2 或 2x1 布局，加上边界
       const cols = Math.ceil(Math.sqrt(images.length));
       const rows = Math.ceil(images.length / cols);
       const cellSize = maxSize / Math.max(cols, rows);
-      canvasWidth = cols * cellSize;
-      canvasHeight = rows * cellSize;
+      canvasWidth = cols * cellSize + (cols - 1) * currentBorderWidth;
+      canvasHeight = rows * cellSize + (rows - 1) * currentBorderWidth;
     }
 
     // 设置画布尺寸
     canvas.width = canvasWidth;
     canvas.height = canvasHeight;
 
-    // 清空画布
-    ctx.fillStyle = '#f8fafc';
+    // 清空画布，使用白色背景
+    ctx.fillStyle = '#ffffff';
     ctx.fillRect(0, 0, canvasWidth, canvasHeight);
 
     // 绘制图片
@@ -162,29 +164,35 @@ const ImageFusion = () => {
         drawWidth = (img.width * drawHeight) / img.height;
         drawX = currentX;
         drawY = 0;
-        currentX += drawWidth;
+        currentX += drawWidth + currentBorderWidth; // 添加边界宽度
       } else if (layout === 'vertical') {
         drawWidth = canvasWidth;
         drawHeight = (img.height * drawWidth) / img.width;
         drawX = 0;
         drawY = currentY;
-        currentY += drawHeight;
+        currentY += drawHeight + currentBorderWidth; // 添加边界高度
       } else {
         // 网格布局
         const cols = Math.ceil(Math.sqrt(images.length));
-        const cellWidth = canvasWidth / cols;
-        const cellHeight = canvasHeight / Math.ceil(images.length / cols);
+        const cellWidth = (canvasWidth - (cols - 1) * currentBorderWidth) / cols;
+        const cellHeight = (canvasHeight - (Math.ceil(images.length / cols) - 1) * currentBorderWidth) / Math.ceil(images.length / cols);
 
         const col = index % cols;
         const row = Math.floor(index / cols);
 
-        drawX = col * cellWidth;
-        drawY = row * cellHeight;
+        drawX = col * (cellWidth + currentBorderWidth);
+        drawY = row * (cellHeight + currentBorderWidth);
         drawWidth = cellWidth;
         drawHeight = cellHeight;
       }
 
+      // 绘制图片
       ctx.drawImage(img, drawX, drawY, drawWidth, drawHeight);
+
+      // 绘制图片边框（可选，让边界更明显）
+      ctx.strokeStyle = '#e2e8f0';
+      ctx.lineWidth = 2;
+      ctx.strokeRect(drawX, drawY, drawWidth, drawHeight);
     });
 
     // 生成预览图片
@@ -351,23 +359,78 @@ const ImageFusion = () => {
 
           {/* 布局模式选择 */}
           {selectedFiles.length > 0 && (
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-3">拼接布局</label>
-              <div className="grid grid-cols-3 gap-3">
-                {layoutModes.map((mode) => (
-                  <button
-                    key={mode.value}
-                    onClick={() => handleLayoutChange(mode.value)}
-                    className={`p-3 rounded-xl border-2 transition-all duration-200 ${
-                      layoutMode === mode.value
-                        ? 'border-indigo-500 bg-indigo-50 text-indigo-700'
-                        : 'border-slate-200 bg-white hover:border-slate-300'
-                    }`}
-                  >
-                    <div className="text-2xl mb-1">{mode.icon}</div>
-                    <div className="text-sm font-medium">{mode.label}</div>
-                  </button>
-                ))}
+            <div className="space-y-6">
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-3">拼接布局</label>
+                <div className="grid grid-cols-3 gap-3">
+                  {layoutModes.map((mode) => (
+                    <button
+                      key={mode.value}
+                      onClick={() => handleLayoutChange(mode.value)}
+                      className={`p-3 rounded-xl border-2 transition-all duration-200 ${
+                        layoutMode === mode.value
+                          ? 'border-indigo-500 bg-indigo-50 text-indigo-700'
+                          : 'border-slate-200 bg-white hover:border-slate-300'
+                      }`}
+                    >
+                      <div className="text-2xl mb-1">{mode.icon}</div>
+                      <div className="text-sm font-medium">{mode.label}</div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* 边界宽度设置 */}
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-3">
+                  图片间距 ({borderWidth}px)
+                </label>
+                <div className="space-y-3">
+                  <input
+                    type="range"
+                    min="0"
+                    max="50"
+                    step="5"
+                    value={borderWidth}
+                    onChange={(e) => {
+                      const newBorderWidth = parseInt(e.target.value);
+                      setBorderWidth(newBorderWidth);
+                      if (selectedFiles.length > 0) {
+                        generateStitchedPreview(selectedFiles, previewUrls, layoutMode);
+                      }
+                    }}
+                    className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer slider"
+                  />
+                  <div className="flex justify-between text-xs text-slate-500">
+                    <span>无间距</span>
+                    <span>小间距</span>
+                    <span>中间距</span>
+                    <span>大间距</span>
+                  </div>
+                  <div className="flex gap-2 mt-2">
+                    {[0, 10, 20, 30, 40].map((preset) => (
+                      <button
+                        key={preset}
+                        onClick={() => {
+                          setBorderWidth(preset);
+                          if (selectedFiles.length > 0) {
+                            generateStitchedPreview(selectedFiles, previewUrls, layoutMode);
+                          }
+                        }}
+                        className={`px-3 py-1 text-xs rounded-lg border transition-colors ${
+                          borderWidth === preset
+                            ? 'border-indigo-500 bg-indigo-50 text-indigo-700'
+                            : 'border-slate-200 bg-white hover:border-slate-300'
+                        }`}
+                      >
+                        {preset === 0 ? '无' : `${preset}px`}
+                      </button>
+                    ))}
+                  </div>
+                  <p className="text-xs text-slate-500 mt-2">
+                    💡 提示：较大的间距能帮助 AI 更好地识别这是多张拼接的图片
+                  </p>
+                </div>
               </div>
             </div>
           )}
