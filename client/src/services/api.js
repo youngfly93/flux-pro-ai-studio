@@ -143,6 +143,36 @@ export const fuseImages = async (stitchedImageFile, prompt, options = {}) => {
   }
 };
 
+// Style transfer API
+export const transferStyle = async (contentImageFile, styleImageFile, prompt, options = {}) => {
+  try {
+    const formData = new FormData();
+    formData.append('contentImage', contentImageFile);
+    formData.append('styleImage', styleImageFile);
+    formData.append('prompt', prompt);
+    formData.append('options', JSON.stringify(options));
+
+    const response = await api.post('/images/style-transfer', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+      timeout: 300000, // 5 minutes timeout for style transfer
+    });
+
+    if (response.data.error) {
+      throw new Error(response.data.error);
+    }
+
+    return response.data;
+  } catch (error) {
+    console.error('Style transfer API error:', error);
+    if (error.response?.data?.error) {
+      throw new Error(`Failed to transfer style: ${error.response.data.error}`);
+    }
+    throw new Error(`Failed to transfer style: ${error.message}`);
+  }
+};
+
 export const healthCheck = async () => {
   try {
     const response = await api.get('/health');

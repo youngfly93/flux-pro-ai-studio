@@ -401,6 +401,150 @@ router.post('/fuse', upload.single('image'), async (req, res) => {
   }
 });
 
+// Style transfer endpoint
+router.post('/style-transfer', upload.fields([
+  { name: 'contentImage', maxCount: 1 },
+  { name: 'styleImage', maxCount: 1 }
+]), async (req, res) => {
+  try {
+    console.log('🎭 Style transfer request received');
+
+    if (!req.files || !req.files.contentImage || !req.files.styleImage) {
+      return res.status(400).json({ error: 'Both content and style images are required' });
+    }
+
+    const { prompt } = req.body;
+    let options = {};
+
+    try {
+      options = req.body.options ? JSON.parse(req.body.options) : {};
+    } catch (e) {
+      console.warn('Failed to parse options:', e);
+    }
+
+    if (!prompt) {
+      return res.status(400).json({ error: 'Style prompt is required' });
+    }
+
+    const contentImageFile = req.files.contentImage[0];
+    const styleImageFile = req.files.styleImage[0];
+
+    console.log('📋 Style transfer request details:', {
+      prompt,
+      options,
+      contentImageSize: contentImageFile.size,
+      styleImageSize: styleImageFile.size,
+      contentImageName: contentImageFile.filename,
+      styleImageName: styleImageFile.filename
+    });
+
+    // Convert content image to base64
+    const contentImageBuffer = fs.readFileSync(contentImageFile.path);
+    const contentImageBase64 = fluxService.imageToBase64(contentImageBuffer);
+
+    // Convert style image to base64
+    const styleImageBuffer = fs.readFileSync(styleImageFile.path);
+    const styleImageBase64 = fluxService.imageToBase64(styleImageBuffer);
+
+    // Create a composite image by combining content and style images side by side
+    // This helps the AI understand both the content and the style reference
+    const sharp = require('sharp');
+
+    try {
+      // Get image dimensions
+      const contentMetadata = await sharp(contentImageBuffer).metadata();
+      const styleMetadata = await sharp(styleImageBuffer).metadata();
+
+      // Calculate target dimensions (make both images same height)
+      const targetHeight = Math.min(1024, Math.max(contentMetadata.height, styleMetadata.height));
+      const contentWidth = Math.round((contentMetadata.width * targetHeight) / contentMetadata.height);
+      const styleWidth = Math.round((styleMetadata.width * targetHeight) / styleMetadata.height);
+
+      // Create composite image with white border between images
+      const borderWidth = 20;
+      const compositeWidth = contentWidth + styleWidth + borderWidth;
+
+      const compositeBuffer = await sharp({
+        create: {
+          width: compositeWidth,
+          height: targetHeight,
+          channels: 3,
+          background: { r: 255, g: 255, b: 255 }
+        }
+      })
+      .composite([
+        {
+          input: await sharp(contentImageBuffer).resize(contentWidth, targetHeight).toBuffer(),
+          left: 0,
+          top: 0
+        },
+        {
+          input: await sharp(styleImageBuffer).resize(styleWidth, targetHeight).toBuffer(),
+          left: contentWidth + borderWidth,
+          top: 0
+        }
+      ])
+      .jpeg({ quality: 90 })
+      .toBuffer();
+
+      const compositeBase64 = fluxService.imageToBase64(compositeBuffer);
+
+      // Create enhanced style transfer prompt
+      const styleTransferPrompt = `The left image shows the content that needs style transfer. The right image shows the reference style. Apply the artistic style, colors, textures, and visual characteristics from the right image to the content of the left image. ${prompt}. Maintain the composition and subjects from the left image while adopting the artistic style from the right image.`;
+
+      var request = await fluxService.editImage(styleTransferPrompt, compositeBase64, options);
+    } catch (sharpError) {
+      console.warn('Sharp processing failed, falling back to simple method:', sharpError);
+      // Fallback to simple method if Sharp fails
+      const fallbackPrompt = `Apply the artistic style and visual characteristics to the content image. ${prompt}`;
+      var request = await fluxService.editImage(fallbackPrompt, contentImageBase64, options);
+    }
+    console.log('🎯 Style transfer request created:', request.id);
+
+    // Poll for result
+    const result = await fluxService.pollForResult(request);
+
+    if (result.status === 'Ready' && result.result?.sample) {
+      // Download the style transferred image
+      const transferredImageBuffer = await fluxService.downloadImage(result.result.sample);
+
+      // Save to uploads directory
+      const filename = `style-transfer-${Date.now()}.jpg`;
+      const filepath = path.join(__dirname, '../uploads', filename);
+      fs.writeFileSync(filepath, transferredImageBuffer);
+
+      // Clean up uploaded files
+      fs.unlinkSync(contentImageFile.path);
+      fs.unlinkSync(styleImageFile.path);
+
+      res.json({
+        success: true,
+        imageUrl: `/uploads/${filename}`,
+        originalUrl: result.result.sample,
+        requestId: request.id
+      });
+    } else {
+      // Clean up uploaded files on failure
+      fs.unlinkSync(contentImageFile.path);
+      fs.unlinkSync(styleImageFile.path);
+      res.status(500).json({ error: 'Style transfer failed', status: result.status });
+    }
+
+  } catch (error) {
+    console.error('Style transfer error:', error);
+    // Clean up uploaded files on error
+    if (req.files) {
+      if (req.files.contentImage && req.files.contentImage[0] && fs.existsSync(req.files.contentImage[0].path)) {
+        fs.unlinkSync(req.files.contentImage[0].path);
+      }
+      if (req.files.styleImage && req.files.styleImage[0] && fs.existsSync(req.files.styleImage[0].path)) {
+        fs.unlinkSync(req.files.styleImage[0].path);
+      }
+    }
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // Get request status
 router.get('/status/:requestId', async (req, res) => {
   try {

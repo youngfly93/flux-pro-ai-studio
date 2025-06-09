@@ -5,6 +5,7 @@ import ImageInpainting from './components/ImageInpainting';
 import ImageExpander from './components/ImageExpander';
 import ImageUpscaler from './components/ImageUpscaler';
 import ImageFusion from './components/ImageFusion';
+import StyleTransfer from './components/StyleTransfer';
 import { healthCheck } from './services/api';
 
 function App() {
@@ -117,6 +118,16 @@ function App() {
               多图融合
             </button>
             <button
+              onClick={() => setActiveTab('style')}
+              className={`px-6 py-3 rounded-xl font-medium transition-all duration-300 ${
+                activeTab === 'style'
+                  ? 'bg-gradient-to-r from-indigo-500 to-purple-600 text-white shadow-lg transform scale-105'
+                  : 'text-slate-600 hover:text-slate-800 hover:bg-slate-50'
+              }`}
+            >
+              风格迁移
+            </button>
+            <button
               onClick={() => setActiveTab('upscale')}
               className={`px-6 py-3 rounded-xl font-medium transition-all duration-300 ${
                 activeTab === 'upscale'
@@ -154,6 +165,7 @@ function App() {
           {activeTab === 'inpaint' && <ImageInpainting />}
           {activeTab === 'expand' && <ImageExpander />}
           {activeTab === 'fusion' && <ImageFusion />}
+          {activeTab === 'style' && <StyleTransfer />}
           {activeTab === 'upscale' && <ImageUpscaler />}
         </div>
       </main>
