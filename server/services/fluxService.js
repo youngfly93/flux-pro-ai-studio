@@ -81,7 +81,8 @@ class FluxService {
         input_image: inputImageBase64,
         seed: options.seed || null,
         safety_tolerance: options.safety_tolerance || 2,
-        output_format: options.output_format || "jpeg"
+        output_format: options.output_format || "jpeg",
+        aspect_ratio: options.aspect_ratio || "1:1"
       };
 
       // Add mask for inpainting if provided
@@ -100,7 +101,12 @@ class FluxService {
 
       console.log('✏️ Editing image with prompt:', prompt);
       console.log('🤖 Using model:', model);
-      console.log('📋 Edit request data:', { ...requestData, input_image: '[BASE64_DATA]', mask: options.mask ? '[MASK_DATA]' : 'none' });
+      console.log('📋 Edit request data:', {
+        ...requestData,
+        input_image: '[BASE64_DATA]',
+        mask: options.mask ? '[MASK_DATA]' : 'none',
+        aspect_ratio: requestData.aspect_ratio
+      });
 
       // 使用选择的模型端点
       const endpoint = `${this.baseURL}/v1/${model}`;
