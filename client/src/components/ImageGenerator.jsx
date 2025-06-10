@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { generateImage, SERVER_BASE_URL } from '../services/api';
 import ModelSelector from './ModelSelector';
 import UpscaleButton from './UpscaleButton';
@@ -17,6 +17,51 @@ const ImageGenerator = () => {
     safety_tolerance: 2,
     model: 'flux-kontext-max'  // 默认使用 max 模型
   });
+
+  // 本地存储键名
+  const STORAGE_KEY = 'flux_pro_image_generator_settings';
+
+  // 从本地存储加载设置
+  const loadSettings = () => {
+    try {
+      const savedSettings = localStorage.getItem(STORAGE_KEY);
+      if (savedSettings) {
+        const parsedSettings = JSON.parse(savedSettings);
+        if (parsedSettings.options) {
+          setOptions(prev => ({ ...prev, ...parsedSettings.options }));
+        }
+        if (parsedSettings.prompt) {
+          setPrompt(parsedSettings.prompt);
+        }
+      }
+    } catch (error) {
+      console.error('加载图像生成器设置失败:', error);
+    }
+  };
+
+  // 保存设置到本地存储
+  const saveSettings = () => {
+    try {
+      const settings = {
+        options,
+        prompt,
+        lastUpdated: Date.now()
+      };
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
+    } catch (error) {
+      console.error('保存图像生成器设置失败:', error);
+    }
+  };
+
+  // 组件挂载时加载设置
+  useEffect(() => {
+    loadSettings();
+  }, []);
+
+  // 当设置变化时保存
+  useEffect(() => {
+    saveSettings();
+  }, [options, prompt]);
 
   const aspectRatios = [
     { value: '1:1', label: '1:1 (正方形)' },

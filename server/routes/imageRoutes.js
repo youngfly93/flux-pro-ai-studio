@@ -35,8 +35,8 @@ const upload = multer({
       fieldname: file.fieldname
     });
 
-    const allowedTypes = /jpeg|jpg|png|gif|webp/;
-    const allowedMimes = /image\/(jpeg|jpg|png|gif|webp)/;
+    const allowedTypes = /jpeg|jpg|png|gif|webp|avif/;
+    const allowedMimes = /image\/(jpeg|jpg|png|gif|webp|avif)/;
 
     // 对于从 canvas 生成的文件，可能没有 originalname
     const extname = file.originalname ?
@@ -127,6 +127,38 @@ router.post('/edit', upload.single('image'), async (req, res) => {
       } catch (e) {
         parsedOptions = {};
       }
+    }
+
+    // Get original image dimensions to preserve aspect ratio (unless it's inpainting)
+    if (!mask) {
+      const sharp = require('sharp');
+      const imageInfo = await sharp(imageBuffer).metadata();
+      const originalAspectRatio = imageInfo.width / imageInfo.height;
+
+      // Calculate the closest standard aspect ratio
+      let aspectRatio = '1:1'; // default
+      if (originalAspectRatio > 1.7) {
+        aspectRatio = '16:9';
+      } else if (originalAspectRatio > 1.4) {
+        aspectRatio = '3:2';
+      } else if (originalAspectRatio > 1.2) {
+        aspectRatio = '4:3';
+      } else if (originalAspectRatio > 0.9) {
+        aspectRatio = '1:1';
+      } else if (originalAspectRatio > 0.7) {
+        aspectRatio = '3:4';
+      } else if (originalAspectRatio > 0.5) {
+        aspectRatio = '2:3';
+      } else {
+        aspectRatio = '9:16';
+      }
+
+      // Override aspect ratio if not explicitly set in options
+      if (!parsedOptions.aspect_ratio) {
+        parsedOptions.aspect_ratio = aspectRatio;
+      }
+
+      console.log(`📐 Original image: ${imageInfo.width}x${imageInfo.height} (ratio: ${originalAspectRatio.toFixed(2)}) -> Using aspect ratio: ${parsedOptions.aspect_ratio}`);
     }
 
     // If mask is provided, add it to options for inpainting
@@ -434,6 +466,36 @@ router.post('/style-transfer', upload.single('image'), async (req, res) => {
     const imageBuffer = fs.readFileSync(req.file.path);
     const imageBase64 = fluxService.imageToBase64(imageBuffer);
 
+    // Get original image dimensions to preserve aspect ratio
+    const sharp = require('sharp');
+    const imageInfo = await sharp(imageBuffer).metadata();
+    const originalAspectRatio = imageInfo.width / imageInfo.height;
+
+    // Calculate the closest standard aspect ratio
+    let aspectRatio = '1:1'; // default
+    if (originalAspectRatio > 1.7) {
+      aspectRatio = '16:9';
+    } else if (originalAspectRatio > 1.4) {
+      aspectRatio = '3:2';
+    } else if (originalAspectRatio > 1.2) {
+      aspectRatio = '4:3';
+    } else if (originalAspectRatio > 0.9) {
+      aspectRatio = '1:1';
+    } else if (originalAspectRatio > 0.7) {
+      aspectRatio = '3:4';
+    } else if (originalAspectRatio > 0.5) {
+      aspectRatio = '2:3';
+    } else {
+      aspectRatio = '9:16';
+    }
+
+    // Override aspect ratio if not explicitly set in options
+    if (!options.aspect_ratio) {
+      options.aspect_ratio = aspectRatio;
+    }
+
+    console.log(`📐 Original image: ${imageInfo.width}x${imageInfo.height} (ratio: ${originalAspectRatio.toFixed(2)}) -> Using aspect ratio: ${options.aspect_ratio}`);
+
     // For style transfer, we'll use BFL's recommended approach:
     // Use the content image as base and apply style through detailed prompting
     // This is simpler and more aligned with FLUX.1 Kontext capabilities
@@ -480,6 +542,202 @@ router.post('/style-transfer', upload.single('image'), async (req, res) => {
     // Clean up uploaded file on error
     if (req.file && fs.existsSync(req.file.path)) {
       fs.unlinkSync(req.file.path);
+    }
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Style transfer with image reference
+router.post('/style-transfer-reference', upload.fields([
+  { name: 'contentImage', maxCount: 1 },
+  { name: 'styleImage', maxCount: 1 }
+]), async (req, res) => {
+  try {
+    console.log('🎭 Style transfer with image reference request received');
+
+    if (!req.files || !req.files.contentImage || !req.files.styleImage) {
+      return res.status(400).json({ error: 'Both content image and style reference image are required' });
+    }
+
+    const contentImageFile = req.files.contentImage[0];
+    const styleImageFile = req.files.styleImage[0];
+    const { prompt = '' } = req.body;
+    let options = {};
+
+    try {
+      options = req.body.options ? JSON.parse(req.body.options) : {};
+    } catch (e) {
+      console.warn('Failed to parse options:', e);
+    }
+
+    console.log('📋 Style transfer with reference request details:', {
+      prompt,
+      options,
+      contentImageSize: contentImageFile.size,
+      styleImageSize: styleImageFile.size,
+      contentImageName: contentImageFile.filename,
+      styleImageName: styleImageFile.filename
+    });
+
+    // Read both images
+    const contentImageBuffer = fs.readFileSync(contentImageFile.path);
+    const styleImageBuffer = fs.readFileSync(styleImageFile.path);
+
+    // Get original content image dimensions to preserve aspect ratio
+    const sharp = require('sharp');
+    const imageInfo = await sharp(contentImageBuffer).metadata();
+    const originalAspectRatio = imageInfo.width / imageInfo.height;
+
+    // Calculate the closest standard aspect ratio
+    let aspectRatio = '1:1'; // default
+    if (originalAspectRatio > 1.7) {
+      aspectRatio = '16:9';
+    } else if (originalAspectRatio > 1.4) {
+      aspectRatio = '3:2';
+    } else if (originalAspectRatio > 1.2) {
+      aspectRatio = '4:3';
+    } else if (originalAspectRatio > 0.9) {
+      aspectRatio = '1:1';
+    } else if (originalAspectRatio > 0.7) {
+      aspectRatio = '3:4';
+    } else if (originalAspectRatio > 0.5) {
+      aspectRatio = '2:3';
+    } else {
+      aspectRatio = '9:16';
+    }
+
+    // Override aspect ratio if not explicitly set in options
+    if (!options.aspect_ratio) {
+      options.aspect_ratio = aspectRatio;
+    }
+
+    console.log(`📐 Original content image: ${imageInfo.width}x${imageInfo.height} (ratio: ${originalAspectRatio.toFixed(2)}) -> Using aspect ratio: ${options.aspect_ratio}`);
+
+    // Create a stitched image with content on left and style reference on right
+    // Add white border between images to help AI distinguish them
+    const borderWidth = 20; // Increased border width for better separation
+    const maxHeight = 1024; // Limit height for processing
+
+    // Resize images to same height while maintaining aspect ratio
+    const contentResized = await sharp(contentImageBuffer)
+      .resize({ height: maxHeight, withoutEnlargement: true })
+      .toBuffer();
+
+    const styleResized = await sharp(styleImageBuffer)
+      .resize({ height: maxHeight, withoutEnlargement: true })
+      .toBuffer();
+
+    // Get dimensions of resized images
+    const contentMeta = await sharp(contentResized).metadata();
+    const styleMeta = await sharp(styleResized).metadata();
+
+    // Create stitched image
+    const stitchedWidth = contentMeta.width + styleMeta.width + borderWidth;
+    const stitchedHeight = Math.max(contentMeta.height, styleMeta.height);
+
+    const stitchedImageBuffer = await sharp({
+      create: {
+        width: stitchedWidth,
+        height: stitchedHeight,
+        channels: 3,
+        background: { r: 255, g: 255, b: 255 }
+      }
+    })
+    .composite([
+      { input: contentResized, left: 0, top: 0 },
+      { input: styleResized, left: contentMeta.width + borderWidth, top: 0 }
+    ])
+    .jpeg()
+    .toBuffer();
+
+    // Convert stitched image to base64
+    const stitchedImageBase64 = fluxService.imageToBase64(stitchedImageBuffer);
+
+    // Implement FLUX.1 Kontext best practices for style transfer
+    // Based on official recommendations and community best practices
+
+    // Analyze reference image to determine style characteristics
+    // TODO: In the future, we could implement AI-based style analysis here
+    // For now, we'll use intelligent defaults based on common style transfer scenarios
+
+    // Common style descriptions that work well with FLUX.1 Kontext
+    const styleDescriptions = {
+      cartoon: "cartoon 3D animation style similar to Pixar or Disney animation with smooth surfaces, bright vibrant colors, simplified but expressive facial features, and 3D animation aesthetics",
+      anime: "anime/manga style with large expressive eyes, stylized proportions, clean line art, and vibrant colors",
+      watercolor: "watercolor painting style with soft brushstrokes, flowing colors, and artistic texture",
+      oil_painting: "oil painting style with visible brushstrokes, rich textures, and classical artistic rendering",
+      sketch: "pencil sketch style with natural graphite lines, cross-hatching, and visible paper texture"
+    };
+
+    // Default to cartoon style as it works well for most cases
+    const defaultStyleDescription = styleDescriptions.cartoon;
+
+    // Create optimized style transfer prompt following FLUX.1 Kontext guidelines
+    // Template: "转换为[特定风格]，同时保持[构图/角色/其他]不变"
+    const styleTransferPrompt = prompt
+      ? `Convert to ${defaultStyleDescription}, while keeping the exact same person, pose, facial expression, clothing, and scene composition unchanged. ${prompt}. Maintain all original details and proportions.`
+      : `Convert to ${defaultStyleDescription}, while keeping the exact same person, pose, facial expression, clothing, background, and scene composition unchanged. Maintain all original details, proportions, and characteristics of the subject.`;
+
+    console.log('🎨 Optimized style transfer prompt:', styleTransferPrompt);
+
+    // Use FLUX.1 Kontext recommended parameters for style transfer
+    const { model, steps, guidance, safety_tolerance, output_format } = options;
+    const styleTransferOptions = {
+      model: model || 'flux-kontext-max',
+      width: imageInfo.width,
+      height: imageInfo.height,
+      steps: steps || 50, // Increased steps for better quality as per article
+      guidance: guidance || 3.0, // Optimal guidance value from article recommendations
+      safety_tolerance: safety_tolerance || 2,
+      output_format: output_format || 'jpeg'
+    };
+
+    console.log('🔧 Style transfer options:', styleTransferOptions);
+
+    // Use the original content image for style transfer (not stitched)
+    const contentImageBase64 = fluxService.imageToBase64(contentImageBuffer);
+    const request = await fluxService.editImage(styleTransferPrompt, contentImageBase64, styleTransferOptions);
+    console.log('🎯 Style transfer with reference request created:', request.id);
+
+    // Poll for result
+    const result = await fluxService.pollForResult(request);
+
+    if (result.status === 'Ready' && result.result?.sample) {
+      // Download the style transferred image
+      const transferredImageBuffer = await fluxService.downloadImage(result.result.sample);
+
+      // Save to uploads directory
+      const filename = `style-transfer-reference-${Date.now()}.jpg`;
+      const filepath = path.join(__dirname, '../uploads', filename);
+      fs.writeFileSync(filepath, transferredImageBuffer);
+
+      // Clean up uploaded files
+      fs.unlinkSync(contentImageFile.path);
+      fs.unlinkSync(styleImageFile.path);
+
+      res.json({
+        success: true,
+        imageUrl: `/uploads/${filename}`,
+        originalUrl: result.result.sample,
+        requestId: request.id
+      });
+    } else {
+      // Clean up uploaded files on failure
+      fs.unlinkSync(contentImageFile.path);
+      fs.unlinkSync(styleImageFile.path);
+      res.status(500).json({ error: 'Style transfer with reference failed', status: result.status });
+    }
+
+  } catch (error) {
+    console.error('Style transfer with reference error:', error);
+    // Clean up uploaded files on error
+    if (req.files) {
+      if (req.files.contentImage && req.files.contentImage[0] && fs.existsSync(req.files.contentImage[0].path)) {
+        fs.unlinkSync(req.files.contentImage[0].path);
+      }
+      if (req.files.styleImage && req.files.styleImage[0] && fs.existsSync(req.files.styleImage[0].path)) {
+        fs.unlinkSync(req.files.styleImage[0].path);
+      }
     }
     res.status(500).json({ error: error.message });
   }

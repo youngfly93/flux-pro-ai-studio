@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { fuseImages, SERVER_BASE_URL } from '../services/api';
 import ModelSelector from './ModelSelector';
 import BeforeAfterSlider from './BeforeAfterSlider';
@@ -25,6 +25,59 @@ const ImageFusion = () => {
     safety_tolerance: 2,
     model: 'flux-kontext-max'
   });
+
+  // 本地存储键名
+  const STORAGE_KEY = 'flux_pro_image_fusion_settings';
+
+  // 从本地存储加载设置
+  const loadSettings = () => {
+    try {
+      const savedSettings = localStorage.getItem(STORAGE_KEY);
+      if (savedSettings) {
+        const parsedSettings = JSON.parse(savedSettings);
+        if (parsedSettings.prompt) {
+          setPrompt(parsedSettings.prompt);
+        }
+        if (parsedSettings.options) {
+          setOptions(prev => ({ ...prev, ...parsedSettings.options }));
+        }
+        if (parsedSettings.layoutMode) {
+          setLayoutMode(parsedSettings.layoutMode);
+        }
+        if (parsedSettings.borderWidth !== undefined) {
+          setBorderWidth(parsedSettings.borderWidth);
+        }
+      }
+    } catch (error) {
+      console.error('加载图像融合设置失败:', error);
+    }
+  };
+
+  // 保存设置到本地存储
+  const saveSettings = () => {
+    try {
+      const settings = {
+        prompt,
+        options,
+        layoutMode,
+        borderWidth,
+        lastUpdated: Date.now()
+      };
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
+    } catch (error) {
+      console.error('保存图像融合设置失败:', error);
+    }
+  };
+
+  // 组件挂载时加载设置
+  useEffect(() => {
+    loadSettings();
+  }, []);
+
+  // 当设置变化时保存
+  useEffect(() => {
+    saveSettings();
+  }, [prompt, options, layoutMode, borderWidth]);
 
   const aspectRatios = [
     { value: '1:1', label: '1:1 (正方形)' },

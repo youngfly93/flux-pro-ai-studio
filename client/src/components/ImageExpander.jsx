@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { expandImage, SERVER_BASE_URL } from '../services/api';
 import BeforeAfterSlider from './BeforeAfterSlider';
 import UpscaleButton from './UpscaleButton';
@@ -61,6 +61,51 @@ function ImageExpander() {
     right: 0
   });
   const fileInputRef = useRef(null);
+
+  // 本地存储键名
+  const STORAGE_KEY = 'flux_pro_image_expander_settings';
+
+  // 从本地存储加载设置
+  const loadSettings = () => {
+    try {
+      const savedSettings = localStorage.getItem(STORAGE_KEY);
+      if (savedSettings) {
+        const parsedSettings = JSON.parse(savedSettings);
+        if (parsedSettings.prompt) {
+          setPrompt(parsedSettings.prompt);
+        }
+        if (parsedSettings.expansionSettings) {
+          setExpansionSettings(parsedSettings.expansionSettings);
+        }
+      }
+    } catch (error) {
+      console.error('加载图像扩展器设置失败:', error);
+    }
+  };
+
+  // 保存设置到本地存储
+  const saveSettings = () => {
+    try {
+      const settings = {
+        prompt,
+        expansionSettings,
+        lastUpdated: Date.now()
+      };
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
+    } catch (error) {
+      console.error('保存图像扩展器设置失败:', error);
+    }
+  };
+
+  // 组件挂载时加载设置
+  useEffect(() => {
+    loadSettings();
+  }, []);
+
+  // 当设置变化时保存
+  useEffect(() => {
+    saveSettings();
+  }, [prompt, expansionSettings]);
 
   // 处理图片上传
   const handleImageUpload = (event) => {

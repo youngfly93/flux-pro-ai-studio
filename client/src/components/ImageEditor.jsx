@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { editImage, SERVER_BASE_URL } from '../services/api';
 import ModelSelector from './ModelSelector';
 import BeforeAfterSlider from './BeforeAfterSlider';
@@ -19,6 +19,51 @@ const ImageEditor = () => {
     model: 'flux-kontext-max'  // 默认使用 max 模型
   });
   const fileInputRef = useRef(null);
+
+  // 本地存储键名
+  const STORAGE_KEY = 'flux_pro_image_editor_settings';
+
+  // 从本地存储加载设置
+  const loadSettings = () => {
+    try {
+      const savedSettings = localStorage.getItem(STORAGE_KEY);
+      if (savedSettings) {
+        const parsedSettings = JSON.parse(savedSettings);
+        if (parsedSettings.options) {
+          setOptions(prev => ({ ...prev, ...parsedSettings.options }));
+        }
+        if (parsedSettings.prompt) {
+          setPrompt(parsedSettings.prompt);
+        }
+      }
+    } catch (error) {
+      console.error('加载图像编辑器设置失败:', error);
+    }
+  };
+
+  // 保存设置到本地存储
+  const saveSettings = () => {
+    try {
+      const settings = {
+        options,
+        prompt,
+        lastUpdated: Date.now()
+      };
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
+    } catch (error) {
+      console.error('保存图像编辑器设置失败:', error);
+    }
+  };
+
+  // 组件挂载时加载设置
+  useEffect(() => {
+    loadSettings();
+  }, []);
+
+  // 当设置变化时保存
+  useEffect(() => {
+    saveSettings();
+  }, [options, prompt]);
 
   // 图像编辑模式下，安全等级必须 ≤ 2
   const safetyLevels = [

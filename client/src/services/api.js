@@ -172,6 +172,36 @@ export const transferStyle = async (contentImageFile, prompt, options = {}) => {
   }
 };
 
+// Style transfer with image reference
+export const transferStyleWithReference = async (contentImageFile, styleReferenceFile, prompt = '', options = {}) => {
+  try {
+    const formData = new FormData();
+    formData.append('contentImage', contentImageFile);
+    formData.append('styleImage', styleReferenceFile);
+    formData.append('prompt', prompt);
+    formData.append('options', JSON.stringify(options));
+
+    const response = await api.post('/images/style-transfer-reference', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+      timeout: 300000, // 5 minutes timeout for style transfer
+    });
+
+    if (response.data.error) {
+      throw new Error(response.data.error);
+    }
+
+    return response.data;
+  } catch (error) {
+    console.error('Style transfer with reference API error:', error);
+    if (error.response?.data?.error) {
+      throw new Error(`Failed to transfer style with reference: ${error.response.data.error}`);
+    }
+    throw new Error(`Failed to transfer style with reference: ${error.message}`);
+  }
+};
+
 export const healthCheck = async () => {
   try {
     const response = await api.get('/health');

@@ -14,10 +14,59 @@ function ImageInpainting() {
   const [brushSize, setBrushSize] = useState(20);
   const [isDrawing, setIsDrawing] = useState(false);
   const [model, setModel] = useState('flux-kontext-max');
-  
+
   const canvasRef = useRef(null);
   const maskCanvasRef = useRef(null);
   const fileInputRef = useRef(null);
+
+  // 本地存储键名
+  const STORAGE_KEY = 'flux_pro_image_inpainting_settings';
+
+  // 从本地存储加载设置
+  const loadSettings = () => {
+    try {
+      const savedSettings = localStorage.getItem(STORAGE_KEY);
+      if (savedSettings) {
+        const parsedSettings = JSON.parse(savedSettings);
+        if (parsedSettings.prompt) {
+          setPrompt(parsedSettings.prompt);
+        }
+        if (parsedSettings.model) {
+          setModel(parsedSettings.model);
+        }
+        if (parsedSettings.brushSize) {
+          setBrushSize(parsedSettings.brushSize);
+        }
+      }
+    } catch (error) {
+      console.error('加载图像重绘设置失败:', error);
+    }
+  };
+
+  // 保存设置到本地存储
+  const saveSettings = () => {
+    try {
+      const settings = {
+        prompt,
+        model,
+        brushSize,
+        lastUpdated: Date.now()
+      };
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
+    } catch (error) {
+      console.error('保存图像重绘设置失败:', error);
+    }
+  };
+
+  // 组件挂载时加载设置
+  useEffect(() => {
+    loadSettings();
+  }, []);
+
+  // 当设置变化时保存
+  useEffect(() => {
+    saveSettings();
+  }, [prompt, model, brushSize]);
 
   // 处理图片上传
   const handleImageUpload = (event) => {
