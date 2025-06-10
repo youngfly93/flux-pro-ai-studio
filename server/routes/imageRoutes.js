@@ -40,12 +40,12 @@ const upload = multer({
 
     // 对于从 canvas 生成的文件，可能没有 originalname
     const extname = file.originalname ?
-      allowedTypes.test(path.extname(file.originalname).toLowerCase()) : true;
+      allowedTypes.test(path.extname(file.originalname).toLowerCase().replace('.', '')) : true;
     const mimetype = allowedMimes.test(file.mimetype);
 
-    console.log('📋 File validation:', { extname, mimetype });
+    console.log('📋 File validation:', { extname, mimetype, originalname: file.originalname, mimetype: file.mimetype });
 
-    if (mimetype || file.mimetype === 'image/png' || file.mimetype === 'image/jpeg') {
+    if (mimetype && extname) {
       return cb(null, true);
     } else {
       console.error('❌ File type rejected:', file.mimetype);
