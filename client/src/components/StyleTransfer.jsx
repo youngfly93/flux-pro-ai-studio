@@ -6,16 +6,13 @@ import UpscaleButton from './UpscaleButton';
 
 const StyleTransfer = () => {
   const [contentImage, setContentImage] = useState(null);
-  const [styleImage, setStyleImage] = useState(null);
   const [prompt, setPrompt] = useState('');
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState(null);
   const [upscaledImage, setUpscaledImage] = useState(null);
   const [error, setError] = useState('');
-  const [styleStrength, setStyleStrength] = useState(0.7);
-  
+
   const contentInputRef = useRef(null);
-  const styleInputRef = useRef(null);
   
   const [options, setOptions] = useState({
     aspect_ratio: '1:1',
@@ -34,14 +31,18 @@ const StyleTransfer = () => {
   ];
 
   const stylePresets = [
-    { name: '油画风格', prompt: 'oil painting style, thick brushstrokes, artistic' },
-    { name: '水彩画', prompt: 'watercolor painting style, soft colors, flowing' },
-    { name: '素描风格', prompt: 'pencil sketch style, black and white, detailed lines' },
-    { name: '动漫风格', prompt: 'anime style, vibrant colors, manga art' },
-    { name: '印象派', prompt: 'impressionist style, soft brushstrokes, light effects' },
-    { name: '抽象艺术', prompt: 'abstract art style, geometric shapes, modern' },
-    { name: '梵高风格', prompt: 'Van Gogh style, swirling brushstrokes, expressive' },
-    { name: '毕加索风格', prompt: 'Picasso style, cubist, geometric faces' }
+    { name: '油画风格', prompt: 'oil painting style with thick brushstrokes, rich textures, and artistic depth' },
+    { name: '水彩画', prompt: 'watercolor painting style with soft flowing colors, transparent washes, and paper texture' },
+    { name: '素描风格', prompt: 'pencil sketch style with detailed graphite lines, cross-hatching, and natural paper texture' },
+    { name: '动漫风格', prompt: 'anime art style with vibrant colors, clean lines, and manga-inspired aesthetics' },
+    { name: '印象派', prompt: 'impressionist painting style with soft brushstrokes, light effects, and atmospheric quality' },
+    { name: '抽象艺术', prompt: 'abstract art style with geometric shapes, bold colors, and modern artistic interpretation' },
+    { name: '梵高风格', prompt: 'Van Gogh painting style with swirling brushstrokes, expressive colors, and post-impressionist technique' },
+    { name: '毕加索风格', prompt: 'Picasso cubist style with geometric faces, fragmented forms, and modernist approach' },
+    { name: '照片写实', prompt: 'photorealistic style with high detail, natural lighting, and lifelike appearance' },
+    { name: '卡通风格', prompt: 'cartoon style with bold outlines, bright colors, and simplified forms' },
+    { name: '复古海报', prompt: 'vintage poster style with retro colors, bold typography, and classic design elements' },
+    { name: '科幻未来', prompt: 'futuristic sci-fi style with neon colors, digital effects, and cyberpunk aesthetics' }
   ];
 
   const handleContentImageSelect = (event) => {
@@ -58,28 +59,9 @@ const StyleTransfer = () => {
     }
   };
 
-  const handleStyleImageSelect = (event) => {
-    const file = event.target.files[0];
-    if (file && file.type.startsWith('image/')) {
-      setStyleImage({
-        file,
-        url: URL.createObjectURL(file),
-        name: file.name
-      });
-      setError('');
-    } else {
-      setError('请选择有效的图片文件');
-    }
-  };
-
   const handleStyleTransfer = async () => {
     if (!contentImage) {
       setError('请选择内容图片');
-      return;
-    }
-
-    if (!styleImage) {
-      setError('请选择风格图片');
       return;
     }
 
@@ -95,20 +77,15 @@ const StyleTransfer = () => {
 
     try {
       console.log('🎨 开始风格迁移...');
-      
-      const transferOptions = {
-        ...options,
-        styleStrength
-      };
 
-      const data = await transferStyle(contentImage.file, styleImage.file, prompt, transferOptions);
+      // Use the editImage API directly with style transfer prompt
+      const data = await transferStyle(contentImage.file, prompt, options);
       
       if (data.success) {
         setResult({
           url: `${SERVER_BASE_URL}${data.imageUrl}`,
           originalUrl: data.originalUrl,
-          contentUrl: contentImage.url,
-          styleUrl: styleImage.url
+          contentUrl: contentImage.url
         });
         console.log('✅ 风格迁移成功');
       } else {
@@ -153,17 +130,14 @@ const StyleTransfer = () => {
 
   const clearImages = () => {
     if (contentImage) URL.revokeObjectURL(contentImage.url);
-    if (styleImage) URL.revokeObjectURL(styleImage.url);
-    
+
     setContentImage(null);
-    setStyleImage(null);
     setResult(null);
     setUpscaledImage(null);
     setError('');
     setPrompt('');
-    
+
     if (contentInputRef.current) contentInputRef.current.value = '';
-    if (styleInputRef.current) styleInputRef.current.value = '';
   };
 
   const applyStylePreset = (preset) => {
@@ -176,115 +150,73 @@ const StyleTransfer = () => {
       <div className="text-center">
         <h2 className="text-3xl font-light text-slate-800 mb-4">🎭 AI 风格迁移</h2>
         <p className="text-slate-600 max-w-3xl mx-auto">
-          上传内容图片和风格参考图片，AI 将把风格图片的艺术风格应用到内容图片上，创造独特的艺术作品。
+          上传图片并选择想要的艺术风格，AI 将为您的图片应用专业的艺术效果，创造独特的艺术作品。
         </p>
       </div>
 
       {/* 图片上传区域 */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        {/* 内容图片上传 */}
-        <div className="bg-white/70 backdrop-blur-sm border border-slate-200/50 rounded-3xl p-6">
-          <h3 className="text-lg font-medium text-slate-800 mb-4">📸 内容图片</h3>
-          <p className="text-sm text-slate-600 mb-4">上传要应用风格的主要图片</p>
-          
-          <div className="space-y-4">
-            <div className="flex items-center justify-center w-full">
-              <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-slate-300 border-dashed rounded-2xl cursor-pointer bg-slate-50/50 hover:bg-slate-100/50 transition-colors">
-                <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                  <svg className="w-8 h-8 mb-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-                  </svg>
-                  <p className="mb-2 text-sm text-slate-500">
-                    <span className="font-semibold">点击上传内容图片</span>
-                  </p>
-                  <p className="text-xs text-slate-500">支持 PNG, JPG, WEBP</p>
-                </div>
-                <input
-                  ref={contentInputRef}
-                  type="file"
-                  accept="image/*"
-                  onChange={handleContentImageSelect}
-                  className="hidden"
-                />
-              </label>
-            </div>
+      <div className="bg-white/70 backdrop-blur-sm border border-slate-200/50 rounded-3xl p-8">
+        <h3 className="text-lg font-medium text-slate-800 mb-6">📸 上传图片</h3>
 
-            {contentImage && (
-              <div className="relative">
-                <img
-                  src={contentImage.url}
-                  alt="内容图片"
-                  className="w-full h-48 object-cover rounded-xl border border-slate-200"
-                />
-                <div className="absolute top-2 right-2 bg-white/90 text-slate-700 text-xs px-2 py-1 rounded-lg">
-                  内容图片
-                </div>
+        <div className="space-y-6">
+          <div className="flex items-center justify-center w-full">
+            <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-slate-300 border-dashed rounded-2xl cursor-pointer bg-slate-50/50 hover:bg-slate-100/50 transition-colors">
+              <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                <svg className="w-8 h-8 mb-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                </svg>
+                <p className="mb-2 text-sm text-slate-500">
+                  <span className="font-semibold">点击上传图片</span> 或拖拽图片到此处
+                </p>
+                <p className="text-xs text-slate-500">支持 PNG, JPG, WEBP</p>
               </div>
-            )}
+              <input
+                ref={contentInputRef}
+                type="file"
+                accept="image/*"
+                onChange={handleContentImageSelect}
+                className="hidden"
+              />
+            </label>
           </div>
-        </div>
 
-        {/* 风格图片上传 */}
-        <div className="bg-white/70 backdrop-blur-sm border border-slate-200/50 rounded-3xl p-6">
-          <h3 className="text-lg font-medium text-slate-800 mb-4">🎨 风格图片</h3>
-          <p className="text-sm text-slate-600 mb-4">上传提供风格参考的图片</p>
-          
-          <div className="space-y-4">
-            <div className="flex items-center justify-center w-full">
-              <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-slate-300 border-dashed rounded-2xl cursor-pointer bg-slate-50/50 hover:bg-slate-100/50 transition-colors">
-                <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                  <svg className="w-8 h-8 mb-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-                  </svg>
-                  <p className="mb-2 text-sm text-slate-500">
-                    <span className="font-semibold">点击上传风格图片</span>
-                  </p>
-                  <p className="text-xs text-slate-500">支持 PNG, JPG, WEBP</p>
-                </div>
-                <input
-                  ref={styleInputRef}
-                  type="file"
-                  accept="image/*"
-                  onChange={handleStyleImageSelect}
-                  className="hidden"
-                />
-              </label>
-            </div>
-
-            {styleImage && (
-              <div className="relative">
-                <img
-                  src={styleImage.url}
-                  alt="风格图片"
-                  className="w-full h-48 object-cover rounded-xl border border-slate-200"
-                />
-                <div className="absolute top-2 right-2 bg-white/90 text-slate-700 text-xs px-2 py-1 rounded-lg">
-                  风格图片
-                </div>
+          {contentImage && (
+            <div className="relative">
+              <img
+                src={contentImage.url}
+                alt="上传的图片"
+                className="w-full max-h-96 object-contain rounded-xl border border-slate-200 shadow-lg"
+              />
+              <div className="absolute top-2 right-2 bg-white/90 text-slate-700 text-xs px-2 py-1 rounded-lg">
+                原始图片
               </div>
-            )}
-          </div>
+            </div>
+          )}
         </div>
       </div>
 
       {/* 风格设置 */}
-      {contentImage && styleImage && (
+      {contentImage && (
         <div className="bg-white/70 backdrop-blur-sm border border-slate-200/50 rounded-3xl p-8">
           <h3 className="text-lg font-medium text-slate-800 mb-6">🎨 风格设置</h3>
 
           <div className="space-y-6">
             {/* 风格预设 */}
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-3">快速风格预设</label>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              <label className="block text-sm font-medium text-slate-700 mb-3">🎨 快速风格预设</label>
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
                 {stylePresets.map((preset, index) => (
                   <button
                     key={index}
                     onClick={() => applyStylePreset(preset)}
-                    className="p-3 text-sm border border-slate-200 rounded-xl hover:border-indigo-500 hover:bg-indigo-50 transition-colors text-left"
+                    className={`p-3 text-sm border rounded-xl transition-all duration-200 text-left ${
+                      prompt === preset.prompt
+                        ? 'border-indigo-500 bg-indigo-50 text-indigo-700'
+                        : 'border-slate-200 hover:border-indigo-300 hover:bg-indigo-25'
+                    }`}
                     disabled={loading}
                   >
-                    {preset.name}
+                    <div className="font-medium">{preset.name}</div>
                   </button>
                 ))}
               </div>
@@ -293,7 +225,7 @@ const StyleTransfer = () => {
             {/* 风格描述 */}
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-3">
-                风格描述 <span className="text-red-500">*</span>
+                ✍️ 风格描述 <span className="text-red-500">*</span>
               </label>
               <textarea
                 value={prompt}
@@ -304,48 +236,8 @@ const StyleTransfer = () => {
                 disabled={loading}
               />
               <p className="mt-2 text-xs text-slate-500">
-                💡 提示：描述越详细，风格迁移效果越准确。可以使用上方的预设风格。
+                💡 提示：描述越详细，风格迁移效果越准确。可以使用上方的预设风格，或自定义描述。
               </p>
-            </div>
-
-            {/* 风格强度 */}
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-3">
-                风格强度 ({Math.round(styleStrength * 100)}%)
-              </label>
-              <div className="space-y-3">
-                <input
-                  type="range"
-                  min="0.1"
-                  max="1.0"
-                  step="0.1"
-                  value={styleStrength}
-                  onChange={(e) => setStyleStrength(parseFloat(e.target.value))}
-                  className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer"
-                  disabled={loading}
-                />
-                <div className="flex justify-between text-xs text-slate-500">
-                  <span>轻微 (10%)</span>
-                  <span>适中 (50%)</span>
-                  <span>强烈 (100%)</span>
-                </div>
-                <div className="flex gap-2">
-                  {[0.3, 0.5, 0.7, 0.9].map((strength) => (
-                    <button
-                      key={strength}
-                      onClick={() => setStyleStrength(strength)}
-                      className={`px-3 py-1 text-xs rounded-lg border transition-colors ${
-                        Math.abs(styleStrength - strength) < 0.05
-                          ? 'border-indigo-500 bg-indigo-50 text-indigo-700'
-                          : 'border-slate-200 bg-white hover:border-slate-300'
-                      }`}
-                      disabled={loading}
-                    >
-                      {Math.round(strength * 100)}%
-                    </button>
-                  ))}
-                </div>
-              </div>
             </div>
 
             {/* 高级选项 */}
@@ -393,7 +285,7 @@ const StyleTransfer = () => {
             <div className="flex flex-col sm:flex-row gap-4">
               <button
                 onClick={handleStyleTransfer}
-                disabled={loading || !contentImage || !styleImage || !prompt.trim()}
+                disabled={loading || !contentImage || !prompt.trim()}
                 className="flex-1 bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 disabled:from-slate-300 disabled:to-slate-400 text-white font-medium py-3 px-6 rounded-xl transition-all duration-300 transform hover:scale-105 disabled:scale-100 disabled:cursor-not-allowed"
               >
                 {loading ? (
@@ -411,7 +303,7 @@ const StyleTransfer = () => {
                 )}
               </button>
 
-              {(contentImage || styleImage) && (
+              {contentImage && (
                 <button
                   onClick={clearImages}
                   disabled={loading}

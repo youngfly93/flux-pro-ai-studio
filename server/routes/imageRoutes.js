@@ -402,15 +402,12 @@ router.post('/fuse', upload.single('image'), async (req, res) => {
 });
 
 // Style transfer endpoint
-router.post('/style-transfer', upload.fields([
-  { name: 'contentImage', maxCount: 1 },
-  { name: 'styleImage', maxCount: 1 }
-]), async (req, res) => {
+router.post('/style-transfer', upload.single('image'), async (req, res) => {
   try {
     console.log('🎭 Style transfer request received');
 
-    if (!req.files || !req.files.contentImage || !req.files.styleImage) {
-      return res.status(400).json({ error: 'Both content and style images are required' });
+    if (!req.file) {
+      return res.status(400).json({ error: 'Content image is required' });
     }
 
     const { prompt } = req.body;
@@ -426,79 +423,29 @@ router.post('/style-transfer', upload.fields([
       return res.status(400).json({ error: 'Style prompt is required' });
     }
 
-    const contentImageFile = req.files.contentImage[0];
-    const styleImageFile = req.files.styleImage[0];
-
     console.log('📋 Style transfer request details:', {
       prompt,
       options,
-      contentImageSize: contentImageFile.size,
-      styleImageSize: styleImageFile.size,
-      contentImageName: contentImageFile.filename,
-      styleImageName: styleImageFile.filename
+      imageSize: req.file.size,
+      imageName: req.file.filename
     });
 
-    // Convert content image to base64
-    const contentImageBuffer = fs.readFileSync(contentImageFile.path);
-    const contentImageBase64 = fluxService.imageToBase64(contentImageBuffer);
+    // Convert image to base64 (this will be the base image for editing)
+    const imageBuffer = fs.readFileSync(req.file.path);
+    const imageBase64 = fluxService.imageToBase64(imageBuffer);
 
-    // Convert style image to base64
-    const styleImageBuffer = fs.readFileSync(styleImageFile.path);
-    const styleImageBase64 = fluxService.imageToBase64(styleImageBuffer);
+    // For style transfer, we'll use BFL's recommended approach:
+    // Use the content image as base and apply style through detailed prompting
+    // This is simpler and more aligned with FLUX.1 Kontext capabilities
+    // Create style transfer prompt based on BFL best practices
+    // According to BFL docs, FLUX.1 Kontext excels at style transfer through detailed prompting
+    const styleTransferPrompt = `Transform this image to ${prompt}. Apply the artistic style while maintaining the original composition, subject placement, and key elements. Preserve the exact camera angle, position, and framing. Only change the visual style, colors, textures, and artistic treatment.`;
 
-    // Create a composite image by combining content and style images side by side
-    // This helps the AI understand both the content and the style reference
-    const sharp = require('sharp');
+    console.log('🎨 Style transfer prompt:', styleTransferPrompt);
 
-    try {
-      // Get image dimensions
-      const contentMetadata = await sharp(contentImageBuffer).metadata();
-      const styleMetadata = await sharp(styleImageBuffer).metadata();
-
-      // Calculate target dimensions (make both images same height)
-      const targetHeight = Math.min(1024, Math.max(contentMetadata.height, styleMetadata.height));
-      const contentWidth = Math.round((contentMetadata.width * targetHeight) / contentMetadata.height);
-      const styleWidth = Math.round((styleMetadata.width * targetHeight) / styleMetadata.height);
-
-      // Create composite image with white border between images
-      const borderWidth = 20;
-      const compositeWidth = contentWidth + styleWidth + borderWidth;
-
-      const compositeBuffer = await sharp({
-        create: {
-          width: compositeWidth,
-          height: targetHeight,
-          channels: 3,
-          background: { r: 255, g: 255, b: 255 }
-        }
-      })
-      .composite([
-        {
-          input: await sharp(contentImageBuffer).resize(contentWidth, targetHeight).toBuffer(),
-          left: 0,
-          top: 0
-        },
-        {
-          input: await sharp(styleImageBuffer).resize(styleWidth, targetHeight).toBuffer(),
-          left: contentWidth + borderWidth,
-          top: 0
-        }
-      ])
-      .jpeg({ quality: 90 })
-      .toBuffer();
-
-      const compositeBase64 = fluxService.imageToBase64(compositeBuffer);
-
-      // Create enhanced style transfer prompt
-      const styleTransferPrompt = `The left image shows the content that needs style transfer. The right image shows the reference style. Apply the artistic style, colors, textures, and visual characteristics from the right image to the content of the left image. ${prompt}. Maintain the composition and subjects from the left image while adopting the artistic style from the right image.`;
-
-      var request = await fluxService.editImage(styleTransferPrompt, compositeBase64, options);
-    } catch (sharpError) {
-      console.warn('Sharp processing failed, falling back to simple method:', sharpError);
-      // Fallback to simple method if Sharp fails
-      const fallbackPrompt = `Apply the artistic style and visual characteristics to the content image. ${prompt}`;
-      var request = await fluxService.editImage(fallbackPrompt, contentImageBase64, options);
-    }
+    // Use the image as base and apply style through prompt
+    // This follows BFL's recommended approach for style transfer
+    const request = await fluxService.editImage(styleTransferPrompt, imageBase64, options);
     console.log('🎯 Style transfer request created:', request.id);
 
     // Poll for result
@@ -513,9 +460,8 @@ router.post('/style-transfer', upload.fields([
       const filepath = path.join(__dirname, '../uploads', filename);
       fs.writeFileSync(filepath, transferredImageBuffer);
 
-      // Clean up uploaded files
-      fs.unlinkSync(contentImageFile.path);
-      fs.unlinkSync(styleImageFile.path);
+      // Clean up uploaded file
+      fs.unlinkSync(req.file.path);
 
       res.json({
         success: true,
@@ -524,22 +470,16 @@ router.post('/style-transfer', upload.fields([
         requestId: request.id
       });
     } else {
-      // Clean up uploaded files on failure
-      fs.unlinkSync(contentImageFile.path);
-      fs.unlinkSync(styleImageFile.path);
+      // Clean up uploaded file on failure
+      fs.unlinkSync(req.file.path);
       res.status(500).json({ error: 'Style transfer failed', status: result.status });
     }
 
   } catch (error) {
     console.error('Style transfer error:', error);
-    // Clean up uploaded files on error
-    if (req.files) {
-      if (req.files.contentImage && req.files.contentImage[0] && fs.existsSync(req.files.contentImage[0].path)) {
-        fs.unlinkSync(req.files.contentImage[0].path);
-      }
-      if (req.files.styleImage && req.files.styleImage[0] && fs.existsSync(req.files.styleImage[0].path)) {
-        fs.unlinkSync(req.files.styleImage[0].path);
-      }
+    // Clean up uploaded file on error
+    if (req.file && fs.existsSync(req.file.path)) {
+      fs.unlinkSync(req.file.path);
     }
     res.status(500).json({ error: error.message });
   }

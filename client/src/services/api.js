@@ -144,11 +144,10 @@ export const fuseImages = async (stitchedImageFile, prompt, options = {}) => {
 };
 
 // Style transfer API
-export const transferStyle = async (contentImageFile, styleImageFile, prompt, options = {}) => {
+export const transferStyle = async (contentImageFile, prompt, options = {}) => {
   try {
     const formData = new FormData();
-    formData.append('contentImage', contentImageFile);
-    formData.append('styleImage', styleImageFile);
+    formData.append('image', contentImageFile);
     formData.append('prompt', prompt);
     formData.append('options', JSON.stringify(options));
 
