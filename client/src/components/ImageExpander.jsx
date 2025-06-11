@@ -177,14 +177,14 @@ function ImageExpander() {
 
   // 扩展图片
   const handleExpand = async () => {
-    if (!originalImage || !prompt.trim()) {
-      setError('请上传图片并输入扩展内容描述');
+    if (!originalImage) {
+      setError('请上传图片');
       return;
     }
 
-    const totalExpansion = expansionSettings.top + expansionSettings.bottom + 
+    const totalExpansion = expansionSettings.top + expansionSettings.bottom +
                           expansionSettings.left + expansionSettings.right;
-    
+
     if (totalExpansion === 0) {
       setError('请至少设置一个方向的扩展像素数');
       return;
@@ -200,8 +200,11 @@ function ImageExpander() {
     setResult(null);
 
     try {
+      // 如果用户没有输入提示词，使用智能默认提示词
+      const finalPrompt = prompt.trim() || 'seamlessly extend the image with natural continuation of the existing scene, maintaining the same style, lighting, and atmosphere';
+
       console.log('🔄 开始扩展...', {
-        prompt,
+        prompt: finalPrompt,
         expansion: expansionSettings,
         newDimensions: getNewDimensions()
       });
@@ -215,7 +218,7 @@ function ImageExpander() {
         safety_tolerance: 2
       };
 
-      const data = await expandImage(originalImage.file, prompt, options);
+      const data = await expandImage(originalImage.file, finalPrompt, options);
 
       if (data.success) {
         setResult(data);
@@ -421,24 +424,24 @@ function ImageExpander() {
           <div className="space-y-6">
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-3">
-                扩展内容描述
+                扩展内容描述 <span className="text-slate-400 text-xs font-normal">(可选)</span>
               </label>
               <textarea
                 value={prompt}
                 onChange={(e) => setPrompt(e.target.value)}
-                placeholder="描述要在扩展区域填充的内容，例如：blue sky with clouds, green forest, ocean waves, mountain landscape..."
+                placeholder="可选：描述要在扩展区域填充的内容，例如：blue sky with clouds, green forest, ocean waves, mountain landscape...&#10;&#10;留空则AI会智能分析原图并自动扩展"
                 className="w-full px-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 resize-none transition-colors duration-200"
                 rows={3}
               />
 
               <div className="text-xs text-slate-500 mt-2">
-                💡 <strong>提示：</strong>描述您希望在扩展区域看到的内容，AI会根据原图风格智能生成
+                💡 <strong>提示：</strong>可以留空让AI智能扩展，或描述您希望在扩展区域看到的内容
               </div>
             </div>
 
             <button
               onClick={handleExpand}
-              disabled={isExpanding || !originalImage || !prompt.trim()}
+              disabled={isExpanding || !originalImage}
               className="w-full bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 disabled:from-slate-300 disabled:to-slate-400 text-white font-medium py-3 px-6 rounded-xl transition-all duration-300 transform hover:scale-105 disabled:scale-100 disabled:cursor-not-allowed"
             >
               {isExpanding ? (
@@ -559,7 +562,9 @@ function ImageExpander() {
                   </div>
                   <div className="flex-1">
                     <h4 className="text-sm font-medium text-slate-700 mb-1">扩展提示词</h4>
-                    <p className="text-sm text-slate-600 font-light">{prompt}</p>
+                    <p className="text-sm text-slate-600 font-light">
+                      {prompt.trim() || '智能扩展 (AI自动分析原图风格)'}
+                    </p>
                   </div>
                 </div>
                 {upscaledImage && (

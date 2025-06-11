@@ -216,10 +216,6 @@ router.post('/expand', upload.single('image'), async (req, res) => {
   try {
     const { prompt, options = {} } = req.body;
 
-    if (!prompt) {
-      return res.status(400).json({ error: 'Prompt is required' });
-    }
-
     if (!req.file) {
       return res.status(400).json({ error: 'Image file is required' });
     }
@@ -242,8 +238,13 @@ router.post('/expand', upload.single('image'), async (req, res) => {
 
     console.log('📐 Expansion options:', parsedOptions);
 
+    // Use intelligent default prompt if none provided
+    const finalPrompt = prompt || 'seamlessly extend the image with natural continuation of the existing scene, maintaining the same style, lighting, and atmosphere';
+
+    console.log('📝 Using prompt:', finalPrompt);
+
     // Create expand request
-    const request = await fluxService.expandImage(imageBase64, prompt, parsedOptions);
+    const request = await fluxService.expandImage(imageBase64, finalPrompt, parsedOptions);
 
     if (!request.id) {
       return res.status(500).json({ error: 'Failed to create expand request' });
